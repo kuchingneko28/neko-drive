@@ -25,6 +25,14 @@ app.use("/api/*", async (c, next) => {
   const secret = c.req.header("Authorization") || c.req.query("token");
   const API_SECRET = process.env.API_SECRET;
 
+  if (!API_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      logger.error("Security configuration error: API_SECRET is not set in production environment.");
+      process.exit(1);
+    }
+    logger.warn("Security warning: API_SECRET is not set. The server is vulnerable.");
+  }
+
   if (API_SECRET && secret !== API_SECRET) {
     logger.warn(`Unauthorized access attempt from ${c.req.header("User-Agent")}`);
     return apiResponse.error(c, "Unauthorized", 401);

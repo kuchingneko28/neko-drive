@@ -49,7 +49,7 @@ export function UploadManager() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">{upload.fileName}</p>
+            <p className="text-sm font-bold truncate">{upload.currentFileName}</p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
               {upload.status === "uploading" ? `Uploading... ${upload.progress}%` : upload.status}
             </p>

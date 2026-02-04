@@ -1,57 +1,79 @@
-# 🐱 Neko Drive 2.0: The Sweet Release 🛡️💎
+# Neko Drive 🐱
 
-Neko Drive is a professional-grade, decentralized cloud storage engine that transforms Discord into a secure, limitless object store. Built for privacy and performance, it features zero-knowledge client-side encryption and a high-fidelity interface.
+**The Secure Multi-Cloud Storage Engine**
 
-## 🚀 Key Features
+Neko Drive is a high-performance, privacy-focused storage system that leverages Discord as an infinite storage backend, featuring AES-256 E2E encryption, comprehensive system monitoring, and a premium "Modern Minimalist" UI.
 
-- **Distributed Storage**: Seamlessly shards files across Discord CDN.
-- **Resumable Engine**: State-of-the-art transfer manager that survives network drops and session pauses.
-- **Zero-Knowledge Security**: AES-GCM-256 E2E encryption. Your keys, your data—server is content-blind.
-- **Circular Backup Protocol**: Self-healing metadata backups with automatic Discord channel purification.
-- **Premium UI/UX**: Built with Shadcn UI, featuring fluid micro-animations and real-time system diagnostics.
-- **Local-First Speed**: Powered by Bun and SQLite (WAL mode) for near-instant metadata indexing.
+## ✨ key Features
+
+- **♾️ Infinite Cloud Storage**: Shards files into 25MB chunks and distributes them across Discord CDNs.
+- **🔒 Zero-Knowledge Encryption**: All files are encrypted with AES-256-GCM before leaving the client.
+- **⚡ Blazing Fast**: Streaming upload/download pipeline with no local buffering bottleneck.
+- **🌐 Modern Stack**: Built with Bun, Hono, React 19, Vite, and Tailwind v4.
+- **🦾 Resilience**: Automatic retries, circular database backups, and self-healing index.
+- **🎨 Active UI**: Real-time health monitoring, drag & drop, and beautiful animations.
 
 ## 🛠️ Tech Stack
 
-- **Runtime**: [Bun](https://bun.sh) (Fastest JS/TS runner & native SQLite)
-- **Engine**: [Hono](https://hono.dev) (Standard-driven web framework)
-- **Interface**: [React](https://react.dev) + [Vite](https://vitejs.dev)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com) + [Shadcn UI](https://ui.shadcn.com)
-- **State**: [TanStack Query](https://tanstack.com/query) v5
+- **Runtime**: [Bun](https://bun.sh) (v1.2+)
+- **Backend**: [Hono](https://hono.dev) + SQLite (Bun Native)
+- **Frontend**: React 19 + Vite + Tailwind CSS v4
+- **State**: TanStack Query + Context API
+- **Components**: Shadcn UI + Framer Motion + Lucide React
 
-## 📥 Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) installed globally.
-- A Discord Bot Token and Channel ID (for object storage).
+- Bun v1.2 or higher
+- A Discord Bot Token & Channel ID
 
 ### Installation
 
-```bash
-# Clone and install all dependencies
-bun install
-```
+1.  **Clone the repository**
 
-### Configuration
+    ```bash
+    git clone https://github.com/yourusername/neko-drive.git
+    cd neko-drive
+    ```
 
-Create `.env` files in both `client/` and `server/` based on the provided `.env.example` templates.
+2.  **Install Dependencies**
 
-### Development
+    ```bash
+    bun install:all
+    ```
 
-```bash
-# Start both Backend and Frontend concurrently
-bun run dev
-```
+    _(This script installs dependencies for both root, client, and server)_
 
-## 🛡️ Security Model
+3.  **Configure Environment**
+    Copy the example config and fill in your details:
 
-Neko Drive follows a strictly **Zero-Knowledge** architecture.
+    ```bash
+    cp server/.env.example server/.env
+    ```
 
-- **Master Key**: Used for local encryption/decryption in Web Workers.
-- **API Secret**: Authorizes secure communication between layers.
-- **No Persistence**: Decryption keys never touch the server or persistent storage.
+    **Required Variables:**
+    - `DISCORD_BOT_TOKEN`: Your bot token
+    - `DISCORD_CHANNEL_ID`: Channel ID for file chunks
+    - `API_SECRET`: A secure string for authentication
 
----
+4.  **Run Development Server**
 
-Built with 🐱 by the Neko Drive Team.
+    ```bash
+    bun run dev
+    ```
+
+    - Frontend: `http://localhost:5173`
+    - Backend: `http://localhost:3000`
+
+## 🛡️ Architecture
+
+Neko Drive splits files into encrypted chunks. Metadata (pointers to chunks, IVs, Salts) is stored locally in `server/neko.db` (SQLite). The actual data lives on Discord.
+
+- **Upload**: Stream -> Encrypt -> Chunk -> Discord -> Save Meta
+- **Download**: Fetch Meta -> Fetch Chunks (Parallel) -> Decrypt -> Stream
+- **Search**: FTS5 Full-Text Search on file names.
+
+## ⚠️ Disclaimer
+
+This project is for educational purposes only. Using Discord as a file storage system may violate their Terms of Service. Use responsibly.
