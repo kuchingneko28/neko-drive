@@ -83,11 +83,16 @@ app.use("/api/*", async (ctx, next) => {
   await next();
 });
 
-// Routes
+// Serve built client (only in production, falls through to API routes otherwise)
+if (process.env.NODE_ENV === "production") {
+  app.use("/*", serveStatic({ root: "../client/dist" }));
+  app.get("*", serveStatic({ path: "../client/dist/index.html" }));
+}
+
+// API Routes
 app.get("/", (ctx) => {
   return apiResponse.success(ctx, {
     status: "active",
-    librarian: "Neko Drive BHVR 🐱",
     version: "2.1.0",
     engine: "Bun + Hono + SQLite",
     debug: process.env.DEBUG === "true",
@@ -99,12 +104,6 @@ app.route("/api/files", files);
 app.route("/api/download", download);
 app.route("/api/stream", stream);
 app.route("/api/system", system);
-
-// Serve built client in production
-if (process.env.NODE_ENV === "production") {
-  app.use("/*", serveStatic({ root: "../client/dist" }));
-  app.get("*", serveStatic({ path: "../client/dist/index.html" }));
-}
 
 // 404 & Error Handling
 app.notFound((ctx) => apiResponse.error(ctx, "Not Found", 404));
