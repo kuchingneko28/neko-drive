@@ -4,10 +4,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "cd server && bun run src/index.ts",
+    "start": "cd server && NODE_ENV=production bun run src/index.ts",
+    "build": "cd client && bun run build",
     "server": "cd server && bun run dev",
     "client": "cd client && bun run dev",
     "dev": "concurrently \"bun run server\" \"bun run client\"",
+    "setup": "bun install && cd client && bun install && cd ../server && bun install && cd .. && bun run build",
     "install:all": "bun install && cd client && bun install && cd ../server && bun install"
   },
   "devDependencies": {

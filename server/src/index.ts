@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
 import { logger as honoLogger } from "hono/logger";
 import { logger } from "./lib/logger";
@@ -99,6 +100,12 @@ app.route("/api/download", download);
 app.route("/api/stream", stream);
 app.route("/api/system", system);
 
+// Serve built client in production
+if (process.env.NODE_ENV === "production") {
+  app.use("/*", serveStatic({ root: "../client/dist" }));
+  app.get("*", serveStatic({ path: "../client/dist/index.html" }));
+}
+
 // 404 & Error Handling
 app.notFound((ctx) => apiResponse.error(ctx, "Not Found", 404));
 app.onError((err, ctx) => {
@@ -159,6 +166,7 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 export default {
   port: PORT,
+  hostname: "0.0.0.0",
   fetch: app.fetch,
   idleTimeout: IDLE_TIMEOUT,
 };
