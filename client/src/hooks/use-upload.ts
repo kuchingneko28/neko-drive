@@ -52,20 +52,21 @@ export function useUpload() {
 
       abortControllerRef.current = new AbortController();
 
+      let cumulativeBytes = 0;
       try {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const isLast = i === files.length - 1;
+          const fileChunks = Math.ceil(file.size / (8192 * 1024));
 
           setUpload((prev) => ({
             ...prev,
             currentFileName: file.name,
             currentFileIndex: i,
-            progress: 0,
-            uploadedBytes: 0,
+            progress: Math.min(99, Math.round((cumulativeBytes / totalSize) * 100)),
+            uploadedBytes: cumulativeBytes,
             uploadedChunks: 0,
-            totalSize: file.size,
-            totalChunks: Math.ceil(file.size / (8192 * 1024)), // Match CHUNK_SIZE from transfer-manager
+            totalChunks: fileChunks,
           }));
 
           await processUpload({
@@ -76,15 +77,17 @@ export function useUpload() {
             onProgress: (progress, speed, eta, uploadedChunks, totalChunks, totalUploaded) => {
               setUpload((prev) => ({
                 ...prev,
-                progress,
+                progress: Math.min(99, Math.round(((cumulativeBytes + (totalUploaded || 0)) / totalSize) * 100)),
                 speed,
                 eta,
                 uploadedChunks: uploadedChunks || 0,
-                totalChunks: totalChunks || 0,
-                uploadedBytes: totalUploaded || 0,
+                totalChunks: totalChunks || fileChunks,
+                uploadedBytes: cumulativeBytes + (totalUploaded || 0),
               }));
             },
           });
+
+          cumulativeBytes += file.size;
 
           if (abortControllerRef.current.signal.aborted) throw new Error("Aborted");
         }
@@ -181,9 +184,14 @@ export function useUpload() {
     cancelUpload,
     isUploading: upload.status === "uploading",
     progress: upload.progress,
+    speed: upload.speed,
+    eta: upload.eta,
     totalFiles: upload.totalFiles,
     currentFileIndex: upload.currentFileIndex,
     currentFileName: upload.currentFileName,
+    totalChunks: upload.totalChunks,
+    uploadedChunks: upload.uploadedChunks,
+    uploadedBytes: upload.uploadedBytes,
     upload,
     clearUpload,
     cleanAbandoned,

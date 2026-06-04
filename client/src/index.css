@@ -1,15 +1,16 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -53,24 +54,19 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
   @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
   }
   @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
   }
 }
 
@@ -94,7 +90,7 @@
     --secondary: #ccd0da; /* Surface0 */
     --secondary-foreground: #4c4f69;
 
-    --muted: #dde1e6;
+    --muted: #e6e9ef; /* Mantle */
     --muted-foreground: #9ca0b0; /* Overlay0 */
 
     --accent: #ccd0da;
@@ -121,17 +117,20 @@
     --sidebar-accent-foreground: #4c4f69;
     --sidebar-border: #bcc0cc;
     --sidebar-ring: #1e66f5;
+
+    --success: #40a02b; /* Green */
+    --warning: #df8e1d; /* Yellow */
   }
 
   .dark {
-    /* Catppuccin Mocha (Dark) */
-    --background: #1e1e2e;
-    --foreground: #cdd6f4;
+    /* Catppuccin Mocha (Dark) - Refined */
+    --background: #11111b; /* Crust */
+    --foreground: #cdd6f4; /* Text */
 
-    --card: #181825; /* Mantle for depth */
+    --card: #181825; /* Mantle */
     --card-foreground: #cdd6f4;
 
-    --popover: #1e1e2e;
+    --popover: #1e1e2e; /* Base */
     --popover-foreground: #cdd6f4;
 
     --primary: #89b4fa; /* Blue */
@@ -140,18 +139,18 @@
     --secondary: #313244; /* Surface0 */
     --secondary-foreground: #cdd6f4;
 
-    --muted: #313244;
+    --muted: #181825; /* Mantle */
     --muted-foreground: #a6adc8; /* Subtext0 */
 
-    --accent: #313244;
+    --accent: #313244; /* Surface0 */
     --accent-foreground: #cdd6f4;
 
-    --destructive: #f38ba8;
+    --destructive: #f38ba8; /* Red */
     --destructive-foreground: #1e1e2e;
 
-    --border: #313244;
-    --input: #313244;
-    --ring: #89b4fa;
+    --border: #313244; /* Surface0 */
+    --input: #45475a; /* Surface1 */
+    --ring: #89b4fa; /* Blue */
 
     --chart-1: #f38ba8; /* Red */
     --chart-2: #fab387; /* Peach */
@@ -159,14 +158,17 @@
     --chart-4: #a6e3a1; /* Green */
     --chart-5: #89b4fa; /* Blue */
 
-    --sidebar: #1e1e2e; /* Base */
+    --sidebar: #11111b; /* Crust */
     --sidebar-foreground: #cdd6f4;
     --sidebar-primary: #89b4fa;
-    --sidebar-primary-foreground: #1e1e2e;
-    --sidebar-accent: #313244;
+    --sidebar-primary-foreground: #11111b;
+    --sidebar-accent: #181825; /* Mantle */
     --sidebar-accent-foreground: #cdd6f4;
     --sidebar-border: #313244;
     --sidebar-ring: #89b4fa;
+
+    --success: #a6e3a1; /* Green */
+    --warning: #f9e2af; /* Yellow */
   }
 }
 
@@ -175,8 +177,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: "Plus Jakarta Sans", sans-serif;
+    @apply bg-background text-foreground font-sans antialiased;
   }
 
   /* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */

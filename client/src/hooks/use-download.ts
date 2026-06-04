@@ -14,7 +14,7 @@ interface DownloadState {
   isPaused?: boolean;
 }
 
-export interface UseDownloadReturn extends DownloadState {
+interface UseDownloadReturn extends DownloadState {
   downloadFile: (id: string, name: string) => Promise<void>;
   previewFile: (id: string, name: string) => Promise<void>;
   clearPreview: () => void;
@@ -122,8 +122,7 @@ export function useDownload(): UseDownloadReturn {
       try {
         const url = await processDownload({
           fileId,
-          name: fileName,
-          mode,
+          sequential: mode === "preview",
           signal: controller.signal,
           initialBlobs: downloadedChunksRef.current,
           onChunkDownloaded: (index, chunk) => {
@@ -135,7 +134,7 @@ export function useDownload(): UseDownloadReturn {
               progress,
               speed,
               eta,
-              status: mode === "download" ? "Downloading..." : "Buffering...",
+              status: mode === "download" ? "Downloading..." : "Decrypting...",
             }));
           },
         });
@@ -149,7 +148,7 @@ export function useDownload(): UseDownloadReturn {
           a.download = fileName;
           a.click();
           setTimeout(() => window.URL.revokeObjectURL(url), 500);
-          toast.success("Download complete");
+          toast.success("Download started");
           setState((prev) => ({ ...prev, isDownloading: false, progress: 100, status: "Complete" }));
         } else {
           setState((prev) => ({

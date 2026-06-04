@@ -14,35 +14,22 @@ export interface HealthStatus {
   };
 }
 
-export function useSystemHealth() {
+export function useSystemHealth(poll = false) {
   const { data: stats } = useQuery({
     queryKey: ["system-stats"],
     queryFn: () => api.get<SystemStats>("/system/stats"),
-    refetchInterval: 60000,
-    staleTime: 60000,
+    staleTime: 120_000,
+    refetchInterval: poll ? 60_000 : false,
     refetchOnWindowFocus: false,
   });
 
   const { data: health } = useQuery({
     queryKey: ["health"],
     queryFn: () => api.get<HealthStatus>("/system/health"),
-    refetchInterval: 60000,
-    staleTime: 30000,
+    staleTime: 120_000,
+    refetchInterval: poll ? 60_000 : false,
     refetchOnWindowFocus: false,
   });
 
-  const getHealthColor = () => {
-    if (!health) return "text-muted-foreground";
-    if (health.database === "online" && health.discord.includes("online"))
-      return "text-green-500 bg-green-500/5 border-green-500/10";
-    if (health.database === "error" || health.discord.includes("unreachable"))
-      return "text-red-500 bg-red-500/5 border-red-500/10";
-    return "text-amber-500 bg-amber-500/5 border-amber-500/10";
-  };
-
-  return {
-    stats,
-    health,
-    getHealthColor,
-  };
+  return { stats, health };
 }

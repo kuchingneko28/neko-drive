@@ -45,7 +45,8 @@ export async function uploadToDiscord(
   }
 
   const data = await response.json();
-  const attachment = data.attachments[0];
+  const attachment = data.attachments?.[0];
+  if (!attachment) throw new Error("Discord returned no attachments");
 
   return {
     id: data.id,
@@ -159,8 +160,9 @@ export async function refreshDiscordUrls(urls: string[]): Promise<string[]> {
 /**
  * Get a fresh CDN URL for an attachment (JIT)
  */
-export async function getDiscordCDNUrl(messageId: string): Promise<string> {
-  const response = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageId}`, {
+export async function getDiscordCDNUrl(messageId: string, channelId?: string): Promise<string> {
+  const chId = channelId || CHANNEL_ID;
+  const response = await fetch(`https://discord.com/api/v10/channels/${chId}/messages/${messageId}`, {
     headers: {
       Authorization: `Bot ${BOT_TOKEN}`,
     },
@@ -171,5 +173,7 @@ export async function getDiscordCDNUrl(messageId: string): Promise<string> {
   }
 
   const data = await response.json();
-  return data.attachments[0].url;
+  const url = data.attachments?.[0]?.url;
+  if (!url) throw new Error(`Message ${messageId} has no attachments`);
+  return url;
 }

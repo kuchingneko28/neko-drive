@@ -7,9 +7,9 @@ export interface FileMetadata {
   name: string;
   size: number;
   type: string | null;
-  iv: string;
-  salt: string;
-  status: "pending" | "active";
+  iv: string | null;
+  salt: string | null;
+  status: "pending" | "active" | "trashed";
   created_at: number;
 }
 

@@ -2,7 +2,7 @@ import { FileArchive, FileAudio, FileCode, FileIcon, FileImage, FileText, FileVi
 
 export type FileType = "image" | "video" | "audio" | "pdf" | "text" | "archive" | "code" | "other";
 
-export function getFileExtension(fileName: string): string {
+function getFileExtension(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() || "";
 }
 
@@ -19,14 +19,6 @@ export function getFileType(fileName: string): FileType {
     return "code";
 
   return "other";
-}
-
-export function isPreviewable(fileName: string): boolean {
-  const type = getFileType(fileName);
-  // Code files are technically text, but we treat them as previewable text for now or non-previewable if no viewer
-  // Based on current FileList logic, we support:
-  if (type === "code") return true;
-  return ["image", "video", "audio", "pdf", "text"].includes(type);
 }
 
 export function getFileIcon(fileName: string) {
@@ -51,7 +43,7 @@ export function getFileIcon(fileName: string) {
   }
 }
 
-export function isFileEncrypted(iv?: string, salt?: string) {
+export function isFileEncrypted(iv?: string | null, salt?: string | null) {
   if (!iv || !salt) return false;
   const isHex = (str: string) => /^[0-9a-fA-F]{24,64}$/.test(str);
   const isAllZeros = (str: string) => /^0+$/.test(str);

@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+# Neko Drive Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for Neko Drive. File management UI with upload, download, preview, and encryption.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **File list** with search, sort by name/size/date, pagination
+- **Upload** via drag-and-drop or file picker, with encrypted/standard mode toggle
+- **Download** with chunked transfer and progress tracking
+- **Preview** images, video, audio, PDF, and text files inline
+- **Encryption** using AES-256-GCM via a Web Worker — key stays client-side
+- **Trash** with soft delete, restore, and empty trash
+- **Transfer widget** floating progress bar for active uploads/downloads
+- **Dark/light/system theme** using Catppuccin Mocha/Latte palette
 
-## React Compiler
+## Project layout
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── components/
+│   ├── layout/AppLayout.tsx      # Shell layout (sidebar + header + content)
+│   ├── settings/SettingsDialog.tsx
+│   ├── ui/                       # shadcn components
+│   ├── FileList.tsx              # Main file listing
+│   ├── FileActions.tsx           # File context menu
+│   ├── FilePreviewModal.tsx      # Inline preview dialog
+│   ├── UploadWidget.tsx          # Upload dialog
+│   ├── TransferWidget.tsx        # Bottom progress bar
+│   ├── Sidebar.tsx               # Navigation + storage stats
+│   ├── DropZone.tsx              # Global drag-and-drop overlay
+│   ├── DeleteFileDialog.tsx
+│   ├── EmptyTrashDialog.tsx
+│   ├── RenameFileDialog.tsx
+│   └── ErrorBoundary.tsx
+├── hooks/
+│   ├── use-files.ts              # File list query
+│   ├── use-upload.ts             # Upload orchestration
+│   ├── use-download.ts           # Download/preview orchestration
+│   └── useSystemHealth.ts        # Health and stats queries
+├── lib/
+│   ├── api.ts                    # HTTP client (GET/POST/PATCH/DELETE)
+│   ├── transfer-manager.ts       # Core upload/download chunking logic
+│   ├── worker.ts                 # Web Worker message helpers
+│   ├── file-utils.tsx            # File type detection, icons
+│   ├── utils.ts                  # cn(), formatBytes(), formatRelativeDate()
+│   └── query.ts                  # TanStack Query config
+├── workers/
+│   └── processor.worker.ts       # AES-256-GCM encrypt/decrypt worker
+└── types/
+    └── index.ts                  # Shared TypeScript types
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```env
+VITE_API_URL=http://localhost:3000/api
+VITE_API_SECRET=your_api_secret
+VITE_MASTER_KEY=your_master_password
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+`VITE_MASTER_KEY` is used for client-side encryption. It's passed to the Web Worker for AES-256-GCM key derivation. Without it, encrypted uploads and previews won't work.
+
+## Scripts
+
+```bash
+bun dev          # Start Vite dev server
+bun build        # TypeScript check + production build
+bun test         # Run tests with Bun
+bun run preview  # Preview production build
 ```

@@ -3,10 +3,10 @@ export interface FileMetadata {
   name: string;
   size: number;
   type: string;
-  status: "pending" | "active" | "deleted";
+  status: "pending" | "active" | "trashed";
   chunks: number;
-  iv: string;
-  salt: string;
+  iv: string | null;
+  salt: string | null;
   createdAt: number;
 }
 
@@ -42,12 +42,10 @@ export interface SystemStats {
     totalFiles: number;
     totalSize: number;
   };
+  encryptedFiles: number;
+  standardFiles: number;
+  totalChunks: number;
+  avgFileSize: number;
+  trashedFiles: number;
   dbSize: number;
-  memory?: {
-    rss: number;
-    heapTotal: number;
-    heapUsed: number;
-  };
-  uptime?: number;
-  version?: string;
 }

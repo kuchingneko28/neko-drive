@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { join } from "path";
 import { logger } from "./logger";
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -14,10 +12,8 @@ export async function backupDatabase() {
     return;
   }
 
-  const DB_PATH = join(process.cwd(), "neko.db");
-
   try {
-    const buffer = await readFile(DB_PATH);
+    const buffer = await Bun.file("neko.db").arrayBuffer();
     const timestamp = Math.floor(Date.now() / 1000);
     const prefix = "📦 **Neko Drive Automated Backup**";
 
@@ -28,7 +24,7 @@ export async function backupDatabase() {
 
     if (listRes.ok) {
       const messages = (await listRes.json()) as { id: string; content: string }[];
-      const oldBackups = messages.filter((m) => m.content.startsWith(prefix));
+      const oldBackups = messages.filter((msg) => msg.content.startsWith(prefix));
 
       if (oldBackups.length > 0) {
         logger.debug(`Cleaning up ${oldBackups.length} legacy backups...`);
@@ -59,7 +55,7 @@ export async function backupDatabase() {
     }
 
     logger.info(`Database backed up successfully to Discord`);
-  } catch (error: any) {
-    logger.error("Error during automated backup:", error.message);
+  } catch (error: unknown) {
+    logger.error("Error during automated backup:", error instanceof Error ? error.message : error);
   }
 }

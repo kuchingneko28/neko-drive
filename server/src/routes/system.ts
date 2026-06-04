@@ -15,7 +15,7 @@ let lastCheck = 0;
 let cachedDiscordStatus = "unknown";
 const CACHE_TTL = 30000; // 30 seconds
 
-system.get("/health", async (c) => {
+system.get("/health", async (ctx) => {
   const now = Date.now();
   const stats: SystemStats = {
     uptime: process.uptime(),
@@ -62,40 +62,51 @@ system.get("/health", async (c) => {
 
   stats.discord = cachedDiscordStatus;
 
-  return apiResponse.success<SystemStats>(c, stats);
+  return apiResponse.success<SystemStats>(ctx, stats);
 });
 
 /**
  * Storage Statistics
  */
-system.get("/stats", async (c) => {
+system.get("/stats", async (ctx) => {
   try {
-    const stats = db
+    const storage = db
       .prepare(
-        `
-      SELECT
-        COUNT(*) as totalFiles,
-        COALESCE(SUM(size), 0) as totalSize
-      FROM files
-      WHERE status = 'active'
-    `,
+        `SELECT COUNT(*) as totalFiles, COALESCE(SUM(size), 0) as totalSize FROM files WHERE status = 'active'`,
       )
       .get() as { totalFiles: number; totalSize: number };
 
-    return apiResponse.success(c, {
-      storage: stats,
+    const encrypted = db
+      .prepare(`SELECT COUNT(*) as count FROM files WHERE status = 'active' AND iv IS NOT NULL AND iv != ''`)
+      .get() as { count: number };
+
+    const chunks = db
+      .prepare(`SELECT COUNT(*) as count FROM chunks WHERE file_id IN (SELECT id FROM files WHERE status = 'active')`)
+      .get() as { count: number };
+
+    const trashed = db
+      .prepare(`SELECT COUNT(*) as count FROM files WHERE status = 'trashed'`)
+      .get() as { count: number };
+
+    return apiResponse.success(ctx, {
+      storage,
+      encryptedFiles: encrypted.count,
+      standardFiles: storage.totalFiles - encrypted.count,
+      totalChunks: chunks.count,
+      avgFileSize: storage.totalFiles > 0 ? Math.round(storage.totalSize / storage.totalFiles) : 0,
+      trashedFiles: trashed.count,
       dbSize: await Bun.file("neko.db").size,
     });
   } catch (error: unknown) {
     logger.error("Stats Error:", error);
-    return apiResponse.error(c, "Failed to fetch storage stats", 500);
+    return apiResponse.error(ctx, "Failed to fetch storage stats", 500);
   }
 });
 
 /**
  * Trigger manual redundant backup
  */
-system.post("/backup", async (c) => {
+system.post("/backup", async (ctx) => {
   try {
     logger.info("Manual backup triggered via API");
     // Run in background to avoid blocking the user
@@ -103,10 +114,10 @@ system.post("/backup", async (c) => {
       logger.error("Background manual backup failed:", err);
     });
 
-    return apiResponse.success(c, { message: "Backup initiative started." });
+    return apiResponse.success(ctx, { message: "Backup initiative started." });
   } catch (error: unknown) {
     logger.error("Manual Backup Trigger Error:", error);
-    return apiResponse.error(c, "Failed to initiate backup", 500);
+    return apiResponse.error(ctx, "Failed to initiate backup", 500);
   }
 });
 

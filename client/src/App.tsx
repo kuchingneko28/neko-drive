@@ -1,3 +1,5 @@
+import { DropZone } from "@/components/DropZone";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { StackList } from "@/components/FileList";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
@@ -33,22 +35,25 @@ function App() {
 
   return (
     <TransferProvider>
-      <AppLayout
-        currentView={currentView}
-        setCurrentView={handleViewChange}
-        setIsUploadWidgetOpen={setIsUploadWidgetOpen}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        theme={theme}
-        setTheme={setTheme}
-      >
-        <StackList status={currentView === "trash" ? "trashed" : "active"} />
-      </AppLayout>
+      <ErrorBoundary>
+        <AppLayout
+          currentView={currentView}
+          setCurrentView={handleViewChange}
+          setIsUploadWidgetOpen={setIsUploadWidgetOpen}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          theme={theme}
+          setTheme={setTheme}
+        >
+          <DropZone>
+            <StackList status={currentView === "trash" ? "trashed" : "active"} />
+          </DropZone>
+        </AppLayout>
 
-      {/* Global Widgets/Overlays */}
-      <TransferWidget />
-      <UploadWidget open={isUploadWidgetOpen} onOpenChange={setIsUploadWidgetOpen} />
-      <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} theme={theme} setTheme={setTheme} />
-      <Toaster theme={theme as "dark" | "light" | "system"} />
+        <TransferWidget onOpenUpload={() => setIsUploadWidgetOpen(true)} />
+        <UploadWidget open={isUploadWidgetOpen} onOpenChange={setIsUploadWidgetOpen} />
+        <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} theme={theme} setTheme={setTheme} />
+        <Toaster theme={theme as "dark" | "light" | "system"} />
+      </ErrorBoundary>
     </TransferProvider>
   );
 }

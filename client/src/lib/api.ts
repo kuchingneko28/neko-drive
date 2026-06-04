@@ -35,6 +35,23 @@ export const api = {
     return result.data;
   },
 
+  patch: async <T>(path: string, body: unknown): Promise<T> => {
+    const res = await fetch(`${API_URL}${path}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: API_SECRET,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const result: ApiResponse<T> = await res.json();
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "API Request Failed");
+    }
+    return result.data;
+  },
+
   delete: async <T>(path: string): Promise<T> => {
     const res = await fetch(`${API_URL}${path}`, {
       method: "DELETE",

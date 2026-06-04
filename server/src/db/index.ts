@@ -1,7 +1,6 @@
 import { Database } from "bun:sqlite";
-import { join } from "path";
 
-const DB_PATH = join(process.cwd(), "neko.db");
+const DB_PATH = `${process.cwd()}/neko.db`;
 const db = new Database(DB_PATH);
 
 // Enable WAL mode for better performance
@@ -14,9 +13,9 @@ db.run(`
     name TEXT NOT NULL,
     size INTEGER NOT NULL,
     type TEXT,
-    iv TEXT NOT NULL,
-    salt TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
+    iv TEXT,
+    salt TEXT,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'active', 'trashed')),
     created_at INTEGER DEFAULT (strftime('%s', 'now'))
   );
 `);
@@ -30,9 +29,15 @@ db.run(`
     channel_id TEXT NOT NULL,
     size INTEGER NOT NULL,
     url TEXT,
-    FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
+    FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE,
+    UNIQUE(file_id, idx)
   );
 `);
+
+// Performance indexes
+db.run("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);");
+db.run("CREATE INDEX IF NOT EXISTS idx_files_created ON files(created_at);");
+db.run("CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);");
 
 // Initialize FTS5 for search
 db.exec(`
