@@ -74,7 +74,7 @@ export function useUpload() {
             shouldEncrypt,
             isLast,
             signal: abortControllerRef.current.signal,
-            onProgress: (progress, speed, eta, uploadedChunks, totalChunks, totalUploaded) => {
+            onProgress: (_progress, speed, eta, uploadedChunks, totalChunks, totalUploaded) => {
               setUpload((prev) => ({
                 ...prev,
                 progress: Math.min(99, Math.round(((cumulativeBytes + (totalUploaded || 0)) / totalSize) * 100)),

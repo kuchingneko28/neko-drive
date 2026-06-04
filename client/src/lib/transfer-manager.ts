@@ -64,7 +64,7 @@ interface DownloadOptions {
 async function fetchAndDecryptChunk(
   worker: Worker,
   fileId: string,
-  chunk: ChunkMetadata,
+  _chunk: ChunkMetadata,
   index: number,
   iv: string,
   signal?: AbortSignal,

@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTransfer } from "@/context/TransferContext";
 import { cn, formatBytes } from "@/lib/utils";
 import {
-  AlertCircle, CheckCircle2, FileIcon, Globe, Loader2, Lock, Upload, X,
+  AlertCircle, CheckCircle2, Globe, Loader2, Lock, Upload, X,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
