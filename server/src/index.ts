@@ -29,12 +29,15 @@ scheduleVacuum();
 
 // Periodic sweep of expired media tokens + stale pending uploads (every 5 min)
 function scheduleCleanup() {
-  mediaTokenCleanupTimer = setTimeout(() => {
-    pruneExpired();
-    const cutoff = Math.floor((Date.now() - STALE_PENDING_MS) / 1000);
-    purgePendingFiles(cutoff);
-    scheduleCleanup();
-  }, 5 * 60 * 1000);
+  mediaTokenCleanupTimer = setTimeout(
+    () => {
+      pruneExpired();
+      const cutoff = Math.floor((Date.now() - STALE_PENDING_MS) / 1000);
+      purgePendingFiles(cutoff);
+      scheduleCleanup();
+    },
+    5 * 60 * 1000,
+  );
 }
 scheduleCleanup();
 // Also sweep once at boot so yesterday's interrupted uploads don't linger.

@@ -48,9 +48,17 @@ export function RenameFileDialog({ fileId, fileName, onClose }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="rounded-xl bg-card">
         <DialogHeader>
-          <DialogTitle className="text-base font-semibold">Rename file</DialogTitle>
+          <DialogTitle className="text-base font-semibold">
+            Rename file
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          className="space-y-3"
+        >
           <div className="flex items-center gap-0.5 bg-secondary/40 rounded-lg border border-transparent px-3 has-focus:ring-2 has-focus:ring-ring">
             <Input
               value={name}
@@ -58,13 +66,28 @@ export function RenameFileDialog({ fileId, fileName, onClose }: Props) {
               className="flex-1 border-0 bg-transparent dark:bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0"
               autoFocus
             />
-            {ext && <span className="text-sm text-muted-foreground/50 py-2 shrink-0 pointer-events-none">{ext}</span>}
+            {ext && (
+              <span className="text-sm text-muted-foreground/50 py-2 shrink-0 pointer-events-none">
+                {ext}
+              </span>
+            )}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" className="rounded-lg text-xs" type="button" onClick={onClose}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg text-xs"
+              type="button"
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button size="sm" className="rounded-lg text-xs" type="submit" disabled={loading || !name.trim()}>
+            <Button
+              size="sm"
+              className="rounded-lg text-xs"
+              type="submit"
+              disabled={loading || !name.trim()}
+            >
               {loading ? "Saving..." : "Save"}
             </Button>
           </div>

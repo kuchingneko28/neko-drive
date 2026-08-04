@@ -63,7 +63,10 @@ export function useUpload() {
             ...prev,
             currentFileName: file.name,
             currentFileIndex: i,
-            progress: Math.min(99, Math.round((cumulativeBytes / totalSize) * 100)),
+            progress: Math.min(
+              99,
+              Math.round((cumulativeBytes / totalSize) * 100),
+            ),
             uploadedBytes: cumulativeBytes,
             uploadedChunks: 0,
             totalChunks: fileChunks,
@@ -74,10 +77,23 @@ export function useUpload() {
             shouldEncrypt,
             isLast,
             signal: abortControllerRef.current.signal,
-            onProgress: (_progress, speed, eta, uploadedChunks, totalChunks, totalUploaded) => {
+            onProgress: (
+              _progress,
+              speed,
+              eta,
+              uploadedChunks,
+              totalChunks,
+              totalUploaded,
+            ) => {
               setUpload((prev) => ({
                 ...prev,
-                progress: Math.min(99, Math.round(((cumulativeBytes + (totalUploaded || 0)) / totalSize) * 100)),
+                progress: Math.min(
+                  99,
+                  Math.round(
+                    ((cumulativeBytes + (totalUploaded || 0)) / totalSize) *
+                      100,
+                  ),
+                ),
                 speed,
                 eta,
                 uploadedChunks: uploadedChunks || 0,
@@ -89,11 +105,14 @@ export function useUpload() {
 
           cumulativeBytes += file.size;
 
-          if (abortControllerRef.current.signal.aborted) throw new Error("Aborted");
+          if (abortControllerRef.current.signal.aborted)
+            throw new DOMException("Aborted", "AbortError");
         }
 
         setUpload((prev) => ({ ...prev, status: "success", progress: 100 }));
-        toast.success(`${files.length} ${files.length === 1 ? "file" : "files"} uploaded successfully!`);
+        toast.success(
+          `${files.length} ${files.length === 1 ? "file" : "files"} uploaded successfully!`,
+        );
         queryClient.invalidateQueries({ queryKey: ["files"] });
         queryClient.invalidateQueries({ queryKey: ["system-stats"] });
 
@@ -111,7 +130,10 @@ export function useUpload() {
           abortControllerRef.current = null;
         }, 3000);
       } catch (error: unknown) {
-        if (abortControllerRef.current?.signal.aborted || (error as Error).message === "Aborted") {
+        if (
+          abortControllerRef.current?.signal.aborted ||
+          (error instanceof DOMException && error.name === "AbortError")
+        ) {
           toast.info("Upload cancelled");
           setUpload((prev) => ({ ...prev, status: "idle", progress: 0 }));
           return;
@@ -137,7 +159,13 @@ export function useUpload() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setUpload((prev) => ({ ...prev, status: "idle", progress: 0, speed: 0, eta: 0 }));
+    setUpload((prev) => ({
+      ...prev,
+      status: "idle",
+      progress: 0,
+      speed: 0,
+      eta: 0,
+    }));
   }, []);
 
   const clearUpload = useCallback(() => {

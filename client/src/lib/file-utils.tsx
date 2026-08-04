@@ -1,6 +1,15 @@
-import { FileArchive, FileAudio, FileCode, FileIcon, FileImage, FileText, FileVideo } from "lucide-react";
+import {
+  FileArchive,
+  FileAudio,
+  FileCode,
+  FileIcon,
+  FileImage,
+  FileText,
+  FileVideo,
+} from "lucide-react";
 
-export type FileType = "image" | "video" | "audio" | "pdf" | "text" | "archive" | "code" | "other";
+export type FileType =
+  "image" | "video" | "audio" | "pdf" | "text" | "archive" | "code" | "other";
 
 function getFileExtension(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() || "";
@@ -9,13 +18,31 @@ function getFileExtension(fileName: string): string {
 export function getFileType(fileName: string): FileType {
   const ext = getFileExtension(fileName);
 
-  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image";
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext))
+    return "image";
   if (["mp4", "webm", "mov", "mkv"].includes(ext)) return "video";
   if (["mp3", "wav", "ogg"].includes(ext)) return "audio";
   if (["pdf"].includes(ext)) return "pdf";
   if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
   if (["txt", "md"].includes(ext)) return "text";
-  if (["json", "js", "ts", "tsx", "jsx", "html", "css", "py", "sh", "yml", "yaml", "c", "cpp", "h"].includes(ext))
+  if (
+    [
+      "json",
+      "js",
+      "ts",
+      "tsx",
+      "jsx",
+      "html",
+      "css",
+      "py",
+      "sh",
+      "yml",
+      "yaml",
+      "c",
+      "cpp",
+      "h",
+    ].includes(ext)
+  )
     return "code";
 
   return "other";
@@ -62,7 +89,13 @@ export function getFileIconColor(fileName: string): string {
   }
 }
 
-export function isFileEncrypted(iv?: string | null, salt?: string | null) {
+export function isFileEncrypted({
+  iv,
+  salt,
+}: {
+  iv?: string | null;
+  salt?: string | null;
+}) {
   if (!iv || !salt) return false;
   const isHex = (str: string) => /^[0-9a-fA-F]{24,64}$/.test(str);
   const isAllZeros = (str: string) => /^0+$/.test(str);

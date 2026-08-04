@@ -17,16 +17,19 @@ download.get("/:id", async (ctx) => {
   }
 
   try {
-    const file = db.prepare("SELECT id, name, size, type FROM files WHERE id = ?").get(fileId) as
-      | FileMetadata
-      | undefined;
+    const file = db
+      .prepare("SELECT id, name, size, type FROM files WHERE id = ?")
+      .get(fileId) as FileMetadata | undefined;
     if (!file) return apiResponse.error(ctx, "File not found", 404);
 
     const chunks = db
-      .prepare("SELECT idx, size, url, message_id FROM chunks WHERE file_id = ? ORDER BY idx ASC")
+      .prepare(
+        "SELECT idx, size, url, message_id FROM chunks WHERE file_id = ? ORDER BY idx ASC",
+      )
       .all(fileId) as ChunkMetadata[];
 
-    if (chunks.length === 0) return apiResponse.error(ctx, "File has no chunks", 404);
+    if (chunks.length === 0)
+      return apiResponse.error(ctx, "File has no chunks", 404);
 
     const chunkIndexStr = ctx.req.query("index");
     if (chunkIndexStr !== undefined) {
@@ -35,10 +38,18 @@ download.get("/:id", async (ctx) => {
       if (!chunk) return apiResponse.error(ctx, "Chunk not found", 404);
 
       const cdnUrl = await resolveChunkUrlWithFallback(chunk);
-      if (!cdnUrl) return apiResponse.error(ctx, "Failed to get chunk URL", 502);
+      if (!cdnUrl)
+        return apiResponse.error(ctx, "Failed to get chunk URL", 502);
 
-      const response = await fetch(cdnUrl, { signal: AbortSignal.timeout(120000) });
-      if (!response.ok) return apiResponse.error(ctx, `Discord fetch failed: ${response.status}`, 502);
+      const response = await fetch(cdnUrl, {
+        signal: AbortSignal.timeout(120000),
+      });
+      if (!response.ok)
+        return apiResponse.error(
+          ctx,
+          `Discord fetch failed: ${response.status}`,
+          502,
+        );
 
       return new Response(response.body, {
         headers: {
@@ -49,11 +60,16 @@ download.get("/:id", async (ctx) => {
       });
     }
 
-    const totalEncryptedSize = chunks.reduce((acc, ch) => acc + ch.size, 0);
+    const startChunkIndex = parseInt(ctx.req.query("start_chunk") || "0", 10);
+    const filteredChunks = chunks.filter((ch) => ch.idx >= startChunkIndex);
+    const totalEncryptedSize = filteredChunks.reduce(
+      (acc, ch) => acc + ch.size,
+      0,
+    );
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
 
-    ;(async () => {
+    (async () => {
       try {
         const fetchChunkData = async (chunk: ChunkMetadata) => {
           if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
@@ -69,10 +85,16 @@ download.get("/:id", async (ctx) => {
             if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
 
             try {
-              const response = await fetch(cdnUrl, { signal: AbortSignal.timeout(120000) });
+              const response = await fetch(cdnUrl, {
+                signal: AbortSignal.timeout(120000),
+              });
 
               if (!response.ok) {
-                if ((response.status === 403 || response.status === 410) && attempt < MAX_ATTEMPTS) continue;
+                if (
+                  (response.status === 403 || response.status === 410) &&
+                  attempt < MAX_ATTEMPTS
+                )
+                  continue;
                 throw new Error(`Fetch failed: ${response.status}`);
               }
 
@@ -90,11 +112,15 @@ download.get("/:id", async (ctx) => {
           throw new Error("Unreachable");
         };
 
-        const startChunkIndex = parseInt(ctx.req.query("start_chunk") || "0", 10);
+        const startChunkIndex = parseInt(
+          ctx.req.query("start_chunk") || "0",
+          10,
+        );
         const filteredChunks = chunks.filter((ch) => ch.idx >= startChunkIndex);
-
         const WINDOW_SIZE = 3;
-        const promises: Array<Promise<Response> | null> = new Array(filteredChunks.length).fill(null);
+        const promises: Array<Promise<Response> | null> = new Array(
+          filteredChunks.length,
+        ).fill(null);
 
         for (let i = 0; i < Math.min(WINDOW_SIZE, filteredChunks.length); i++) {
           promises[i] = fetchChunkData(filteredChunks[i]);
@@ -104,7 +130,8 @@ download.get("/:id", async (ctx) => {
           if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
 
           const response = await promises[i];
-          if (!response) throw new Error(`Chunk ${filteredChunks[i].idx} data missing`);
+          if (!response)
+            throw new Error(`Chunk ${filteredChunks[i].idx} data missing`);
 
           promises[i] = null;
           const next = i + WINDOW_SIZE;
@@ -115,7 +142,8 @@ download.get("/:id", async (ctx) => {
           // Stream the CDN body through directly — buffering the whole chunk
           // (arrayBuffer) delays the first byte to the client until the CDN
           // transfer finishes, which looks like a stuck download on slow links.
-          if (!response.body) throw new Error(`Chunk ${filteredChunks[i].idx} has no body`);
+          if (!response.body)
+            throw new Error(`Chunk ${filteredChunks[i].idx} has no body`);
           const reader = response.body.getReader();
           while (true) {
             if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
@@ -127,17 +155,17 @@ download.get("/:id", async (ctx) => {
 
         await writer.close();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg === "Client aborted") {
+        if (ctx.req.raw.signal.aborted) {
           logger.info(`[STREAM ABORT] File ${fileId} cancelled by client`);
-        } else if (msg !== "undefined") {
-          logger.error(`[STREAM CRITICAL] File ${fileId} failed:`, msg);
+        } else if (err instanceof Error && err.message !== "undefined") {
+          logger.error(`[STREAM CRITICAL] File ${fileId} failed:`, err.message);
         }
         writer.abort(err).catch(() => {});
       }
     })();
 
-    const disposition = ctx.req.query("inline") === "true" ? "inline" : "attachment";
+    const disposition =
+      ctx.req.query("inline") === "true" ? "inline" : "attachment";
     const encodedFilename = encodeURIComponent(file.name);
 
     return new Response(readable, {

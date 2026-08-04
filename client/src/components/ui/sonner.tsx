@@ -17,8 +17,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
           toast:
             "group toast group-[.toaster]:shadow-2xl group-[.toaster]:backdrop-blur-3xl group-[.toaster]:rounded-2xl font-sans",
           description: "group-[.toast]:text-muted-foreground font-medium",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground font-bold",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground font-bold",
+          actionButton:
+            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground font-bold",
+          cancelButton:
+            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground font-bold",
         },
         style: {
           fontFamily: '"Plus Jakarta Sans", sans-serif',

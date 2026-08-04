@@ -15,7 +15,10 @@ import { logger } from "./logger";
 const MEDIA_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const store = new Map<string, { fileId: string; expiresAt: number }>();
 
-export function issueMediaToken(fileId: string): { token: string; expiresAt: number } {
+export function issueMediaToken(fileId: string): {
+  token: string;
+  expiresAt: number;
+} {
   pruneExpired();
   const token = randomBytes(24).toString("hex");
   const expiresAt = Date.now() + MEDIA_TOKEN_TTL_MS;

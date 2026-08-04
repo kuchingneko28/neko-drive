@@ -13,7 +13,9 @@ function isUrlExpiringSoon(url: string): boolean {
   return expiry < Math.floor(Date.now() / 1000) + 300;
 }
 
-export async function resolveChunkUrlWithFallback(chunk: ChunkMetadata): Promise<string | null> {
+export async function resolveChunkUrlWithFallback(
+  chunk: ChunkMetadata,
+): Promise<string | null> {
   const { url, message_id, channel_id } = chunk;
 
   if (url && !isUrlExpiringSoon(url)) return url;
@@ -30,7 +32,10 @@ export async function resolveChunkUrlWithFallback(chunk: ChunkMetadata): Promise
           const refreshed = await refreshDiscordUrls([url]);
           if (refreshed[0]) {
             const newUrl = refreshed[0];
-            db.run("UPDATE chunks SET url = ? WHERE message_id = ?", [newUrl, message_id]);
+            db.run("UPDATE chunks SET url = ? WHERE message_id = ?", [
+              newUrl,
+              message_id,
+            ]);
             return newUrl;
           }
         } catch {
@@ -41,7 +46,10 @@ export async function resolveChunkUrlWithFallback(chunk: ChunkMetadata): Promise
       if (message_id && chId) {
         const newUrl = await getDiscordCDNUrl(message_id, chId);
         if (newUrl) {
-          db.run("UPDATE chunks SET url = ?, channel_id = ? WHERE message_id = ?", [newUrl, chId, message_id]);
+          db.run(
+            "UPDATE chunks SET url = ?, channel_id = ? WHERE message_id = ?",
+            [newUrl, chId, message_id],
+          );
           return newUrl;
         }
       }

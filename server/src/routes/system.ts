@@ -29,7 +29,8 @@ system.get("/health", async (ctx) => {
 
   try {
     // 1. Check SQLite (Fast enough to run every time)
-    const result = db.prepare("SELECT 1 as ok").get() as { ok: number } | undefined;
+    const result = db.prepare("SELECT 1 as ok").get() as
+      { ok: number } | undefined;
     if (result && result.ok === 1) {
       stats.database = "online";
     }
@@ -78,11 +79,15 @@ system.get("/stats", async (ctx) => {
       .get() as { totalFiles: number; totalSize: number };
 
     const encrypted = db
-      .prepare(`SELECT COUNT(*) as count FROM files WHERE status = 'active' AND iv IS NOT NULL AND iv != ''`)
+      .prepare(
+        `SELECT COUNT(*) as count FROM files WHERE status = 'active' AND iv IS NOT NULL AND iv != ''`,
+      )
       .get() as { count: number };
 
     const chunks = db
-      .prepare(`SELECT COUNT(*) as count FROM chunks WHERE file_id IN (SELECT id FROM files WHERE status = 'active')`)
+      .prepare(
+        `SELECT COUNT(*) as count FROM chunks WHERE file_id IN (SELECT id FROM files WHERE status = 'active')`,
+      )
       .get() as { count: number };
 
     const trashed = db
@@ -94,7 +99,10 @@ system.get("/stats", async (ctx) => {
       encryptedFiles: encrypted.count,
       standardFiles: storage.totalFiles - encrypted.count,
       totalChunks: chunks.count,
-      avgFileSize: storage.totalFiles > 0 ? Math.round(storage.totalSize / storage.totalFiles) : 0,
+      avgFileSize:
+        storage.totalFiles > 0
+          ? Math.round(storage.totalSize / storage.totalFiles)
+          : 0,
       trashedFiles: trashed.count,
       dbSize: await Bun.file("neko.db").size,
     });
@@ -112,7 +120,6 @@ system.post("/backup", async (ctx) => {
     logger.info("Manual backup triggered via API");
     // Run in background to avoid blocking the user
     backupDatabase();
-
 
     return apiResponse.success(ctx, { message: "Backup initiative started." });
   } catch (error: unknown) {

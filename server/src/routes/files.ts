@@ -12,16 +12,22 @@ const MAX_PAGE_LIMIT = 100;
 
 files.get("/", async (ctx) => {
   try {
-    const limit = Math.min(Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1), MAX_PAGE_LIMIT);
+    const limit = Math.min(
+      Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1),
+      MAX_PAGE_LIMIT,
+    );
     const offset = Math.max(parseInt(ctx.req.query("offset") || "0") || 0, 0);
     const status = ctx.req.query("status") || "active";
     const sort = ctx.req.query("sort") || "created_at";
-    const order = ctx.req.query("order")?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const order =
+      ctx.req.query("order")?.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     const allowedSort = ["name", "size", "created_at"];
     const sortCol = allowedSort.includes(sort) ? sort : "created_at";
 
-    logger.debug(`Listing files (status: ${status}, sort: ${sortCol} ${order}, limit: ${limit}, offset: ${offset})`);
+    logger.debug(
+      `Listing files (status: ${status}, sort: ${sortCol} ${order}, limit: ${limit}, offset: ${offset})`,
+    );
 
     const allFiles = db
       .prepare(
@@ -34,8 +40,11 @@ files.get("/", async (ctx) => {
          LIMIT ? OFFSET ?`,
       )
       .all(status, limit, offset) as FileMetadata[];
-    const total = (db.prepare("SELECT COUNT(*) as count FROM files WHERE status = ?").get(status) as { count: number })
-      .count;
+    const total = (
+      db
+        .prepare("SELECT COUNT(*) as count FROM files WHERE status = ?")
+        .get(status) as { count: number }
+    ).count;
 
     return apiResponse.success<PaginatedResponse<FileMetadata>>(ctx, {
       items: allFiles,
@@ -52,7 +61,10 @@ files.get("/", async (ctx) => {
 files.get("/search", async (ctx) => {
   const query = ctx.req.query("q");
   const status = ctx.req.query("status") || "active";
-  const limit = Math.min(Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1), MAX_PAGE_LIMIT);
+  const limit = Math.min(
+    Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1),
+    MAX_PAGE_LIMIT,
+  );
   const offset = Math.max(parseInt(ctx.req.query("offset") || "0") || 0, 0);
 
   if (!query) {
@@ -91,7 +103,12 @@ files.get("/search", async (ctx) => {
         .get(match, status) as { count: number }
     ).count;
 
-    return apiResponse.success<PaginatedResponse<FileMetadata>>(ctx, { items: results, total, limit, offset });
+    return apiResponse.success<PaginatedResponse<FileMetadata>>(ctx, {
+      items: results,
+      total,
+      limit,
+      offset,
+    });
   } catch (error: unknown) {
     logger.error(`Search error for "${query}":`, error);
     return apiResponse.error(ctx, "Search failed", 500);
@@ -112,12 +129,17 @@ files.get("/:id", async (ctx) => {
       return apiResponse.error(ctx, "File not found", 404);
     }
 
-    const chunks = db.prepare("SELECT * FROM chunks WHERE file_id = ? ORDER BY idx ASC").all(id) as ChunkMetadata[];
+    const chunks = db
+      .prepare("SELECT * FROM chunks WHERE file_id = ? ORDER BY idx ASC")
+      .all(id) as ChunkMetadata[];
 
-    return apiResponse.success<FileMetadata & { chunks: ChunkMetadata[] }>(ctx, {
-      ...file,
-      chunks,
-    });
+    return apiResponse.success<FileMetadata & { chunks: ChunkMetadata[] }>(
+      ctx,
+      {
+        ...file,
+        chunks,
+      },
+    );
   } catch (error: unknown) {
     logger.error(`Failed to fetch file details for ${id}:`, error);
     return apiResponse.error(ctx, "Failed to fetch file details", 500);
@@ -127,7 +149,8 @@ files.get("/:id", async (ctx) => {
 files.post("/:id/restore", async (ctx) => {
   const id = ctx.req.param("id");
   try {
-    const file = db.prepare("SELECT status FROM files WHERE id = ?").get(id) as { status: string } | undefined;
+    const file = db.prepare("SELECT status FROM files WHERE id = ?").get(id) as
+      { status: string } | undefined;
     if (!file) return apiResponse.error(ctx, "File not found", 404);
 
     if (file.status !== "trashed") {
@@ -139,7 +162,6 @@ files.post("/:id/restore", async (ctx) => {
 
     backupDatabase();
 
-
     return apiResponse.success(ctx, { message: "File restored" });
   } catch (error: unknown) {
     logger.error(`Failed to restore file ${id}:`, error);
@@ -149,16 +171,25 @@ files.post("/:id/restore", async (ctx) => {
 
 files.delete("/trash", async (ctx) => {
   try {
-    const trashedFiles = db.prepare("SELECT id FROM files WHERE status = 'trashed'").all() as { id: string }[];
+    const trashedFiles = db
+      .prepare("SELECT id FROM files WHERE status = 'trashed'")
+      .all() as { id: string }[];
 
     if (trashedFiles.length === 0) {
-      return apiResponse.success(ctx, { message: "Trash is already empty", deletedCount: 0 });
+      return apiResponse.success(ctx, {
+        message: "Trash is already empty",
+        deletedCount: 0,
+      });
     }
 
     const ids = trashedFiles.map((file) => file.id);
     const placeholders = ids.map(() => "?").join(",");
 
-    const chunks = db.prepare(`SELECT message_id FROM chunks WHERE file_id IN (${placeholders})`).all(...ids) as {
+    const chunks = db
+      .prepare(
+        `SELECT message_id FROM chunks WHERE file_id IN (${placeholders})`,
+      )
+      .all(...ids) as {
       message_id: string;
     }[];
     const messageIds = chunks.map((chunk) => chunk.message_id);
@@ -169,7 +200,9 @@ files.delete("/trash", async (ctx) => {
     });
     deleteStmt();
 
-    logger.info(`Emptied trash: Deleted ${ids.length} files and cleaning up ${messageIds.length} chunks`);
+    logger.info(
+      `Emptied trash: Deleted ${ids.length} files and cleaning up ${messageIds.length} chunks`,
+    );
 
     bulkDeleteFromDiscord(messageIds).catch((err: unknown) => {
       logger.error("Background Discord cleanup failed for empty trash:", err);
@@ -177,8 +210,10 @@ files.delete("/trash", async (ctx) => {
 
     backupDatabase();
 
-
-    return apiResponse.success(ctx, { message: "Trash emptied", deletedCount: ids.length });
+    return apiResponse.success(ctx, {
+      message: "Trash emptied",
+      deletedCount: ids.length,
+    });
   } catch (error: unknown) {
     logger.error("Failed to empty trash:", error);
     return apiResponse.error(ctx, "Failed to empty trash", 500);
@@ -194,9 +229,11 @@ files.patch("/:id", async (ctx) => {
   }
 
   try {
-    const file = db.prepare("SELECT status FROM files WHERE id = ?").get(id) as { status: string } | undefined;
+    const file = db.prepare("SELECT status FROM files WHERE id = ?").get(id) as
+      { status: string } | undefined;
     if (!file) return apiResponse.error(ctx, "File not found", 404);
-    if (file.status !== "active") return apiResponse.error(ctx, "Only active files can be renamed", 400);
+    if (file.status !== "active")
+      return apiResponse.error(ctx, "Only active files can be renamed", 400);
 
     db.run("UPDATE files SET name = ? WHERE id = ?", [name, id]);
     return apiResponse.success(ctx, { message: "File renamed" });
@@ -209,9 +246,9 @@ files.patch("/:id", async (ctx) => {
 files.delete("/:id", async (ctx) => {
   const id = ctx.req.param("id");
   try {
-    const file = db.prepare("SELECT status, name FROM files WHERE id = ?").get(id) as
-      | { status: string; name: string }
-      | undefined;
+    const file = db
+      .prepare("SELECT status, name FROM files WHERE id = ?")
+      .get(id) as { status: string; name: string } | undefined;
     if (!file) return apiResponse.error(ctx, "File not found", 404);
 
     if (file.status === "active") {
@@ -220,25 +257,27 @@ files.delete("/:id", async (ctx) => {
 
       backupDatabase();
 
-
       return apiResponse.success(ctx, { message: "File moved to trash" });
     }
 
     logger.info(`Permanently deleting file ${id}`);
 
-    const chunks = db.prepare("SELECT message_id FROM chunks WHERE file_id = ?").all(id) as { message_id: string }[];
+    const chunks = db
+      .prepare("SELECT message_id FROM chunks WHERE file_id = ?")
+      .all(id) as { message_id: string }[];
     const messageIds = chunks.map((chunk) => chunk.message_id);
 
     db.run("DELETE FROM files WHERE id = ?", [id]);
 
-    logger.debug(`Deleted metadata for ${id}, cleaning up ${messageIds.length} chunks on Discord`);
+    logger.debug(
+      `Deleted metadata for ${id}, cleaning up ${messageIds.length} chunks on Discord`,
+    );
 
     bulkDeleteFromDiscord(messageIds).catch((err: unknown) => {
       logger.error(`Background Discord cleanup failed for ${id}:`, err);
     });
 
     backupDatabase();
-
 
     return apiResponse.success(ctx, { message: "File permanently deleted" });
   } catch (error: unknown) {

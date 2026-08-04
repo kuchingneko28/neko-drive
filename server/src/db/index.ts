@@ -38,7 +38,9 @@ db.run(`
 db.run("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);");
 db.run("CREATE INDEX IF NOT EXISTS idx_files_created ON files(created_at);");
 db.run("CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);");
-db.run("CREATE INDEX IF NOT EXISTS idx_chunks_message_id ON chunks(message_id);");
+db.run(
+  "CREATE INDEX IF NOT EXISTS idx_chunks_message_id ON chunks(message_id);",
+);
 
 // Initialize FTS5 for search
 db.exec(`

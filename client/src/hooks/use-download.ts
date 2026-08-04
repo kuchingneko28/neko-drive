@@ -42,7 +42,11 @@ export function useDownload(): UseDownloadReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Resume state tracking
-  const currentRequest = useRef<{ id: string; name: string; mode: "download" | "preview" } | null>(null);
+  const currentRequest = useRef<{
+    id: string;
+    name: string;
+    mode: "download" | "preview";
+  } | null>(null);
   const downloadedChunksRef = useRef<Blob[]>([]);
 
   const clearPreview = useCallback(() => {
@@ -76,7 +80,13 @@ export function useDownload(): UseDownloadReturn {
       abortControllerRef.current = null;
     }
     downloadedChunksRef.current = [];
-    setState((prev) => ({ ...prev, isDownloading: false, progress: 0, isPaused: false, status: "Cancelled" }));
+    setState((prev) => ({
+      ...prev,
+      isDownloading: false,
+      progress: 0,
+      isPaused: false,
+      status: "Cancelled",
+    }));
     toast.info("Transfer cancelled.");
   }, []);
 
@@ -85,12 +95,22 @@ export function useDownload(): UseDownloadReturn {
       abortControllerRef.current.abort("Paused");
       abortControllerRef.current = null;
     }
-    setState((prev) => ({ ...prev, isPaused: true, isDownloading: false, status: "Paused" }));
+    setState((prev) => ({
+      ...prev,
+      isPaused: true,
+      isDownloading: false,
+      status: "Paused",
+    }));
     toast.info("Transfer paused");
   }, []);
 
   const processFile = useCallback(
-    async (fileId: string, fileName: string, mode: "download" | "preview", isResume = false) => {
+    async (
+      fileId: string,
+      fileName: string,
+      mode: "download" | "preview",
+      isResume = false,
+    ) => {
       // Setup Controller
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -149,15 +169,19 @@ export function useDownload(): UseDownloadReturn {
           a.href = url;
           a.download = fileName;
           a.click();
-          if (url.startsWith("blob:")) setTimeout(() => window.URL.revokeObjectURL(url), 500);
+          if (url.startsWith("blob:"))
+            setTimeout(() => window.URL.revokeObjectURL(url), 500);
           toast.success("Download started");
-          setState((prev) => ({ ...prev, isDownloading: false, progress: 100, status: "Complete" }));
+          setState((prev) => ({
+            ...prev,
+            isDownloading: false,
+            progress: 100,
+            status: "Complete",
+          }));
         } else {
           // Unencrypted previews are served from /stream; ask the server for an
           // inline response so media renders instead of triggering a download.
-          const preview = url.startsWith("blob:")
-            ? url
-            : `${url}&inline=true`;
+          const preview = url.startsWith("blob:") ? url : `${url}&inline=true`;
           setState((prev) => ({
             ...prev,
             isDownloading: false,
@@ -175,7 +199,11 @@ export function useDownload(): UseDownloadReturn {
         const error = raw instanceof Error ? raw : new Error(String(raw));
         console.error("Download failed:", error);
         toast.error(`Transfer failed: ${error.message}`);
-        setState((prev) => ({ ...prev, isDownloading: false, status: "Error" }));
+        setState((prev) => ({
+          ...prev,
+          isDownloading: false,
+          status: "Error",
+        }));
       }
     },
     [state.previewUrl],
@@ -183,13 +211,19 @@ export function useDownload(): UseDownloadReturn {
 
   const resumeDownload = useCallback(() => {
     if (currentRequest.current) {
-      processFile(currentRequest.current.id, currentRequest.current.name, currentRequest.current.mode, true);
+      processFile(
+        currentRequest.current.id,
+        currentRequest.current.name,
+        currentRequest.current.mode,
+        true,
+      );
     }
   }, [processFile]);
 
   return {
     ...state,
-    downloadFile: (id: string, name: string) => processFile(id, name, "download"),
+    downloadFile: (id: string, name: string) =>
+      processFile(id, name, "download"),
     previewFile: (id: string, name: string) => processFile(id, name, "preview"),
     clearPreview,
     cancelDownload,

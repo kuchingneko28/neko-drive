@@ -21,7 +21,10 @@ export function bytesToHex(bytes: Uint8Array): string {
     .join("");
 }
 
-export function chunkIv(fileIvHex: string, index: number): Uint8Array<ArrayBuffer> {
+export function chunkIv(
+  fileIvHex: string,
+  index: number,
+): Uint8Array<ArrayBuffer> {
   const iv = hexToBytes(fileIvHex);
   iv[12] = (index >>> 24) & 0xff;
   iv[13] = (index >>> 16) & 0xff;

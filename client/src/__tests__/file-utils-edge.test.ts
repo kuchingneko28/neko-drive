@@ -41,14 +41,33 @@ describe("getFileType - edge cases", () => {
 
   test("known extension returns correct type", () => {
     const cases: [string, string][] = [
-      ["png", "image"], ["jpg", "image"], ["jpeg", "image"], ["gif", "image"],
-      ["webp", "image"], ["svg", "image"],
-      ["mp4", "video"], ["webm", "video"], ["mov", "video"], ["mkv", "video"],
-      ["mp3", "audio"], ["wav", "audio"], ["ogg", "audio"],
+      ["png", "image"],
+      ["jpg", "image"],
+      ["jpeg", "image"],
+      ["gif", "image"],
+      ["webp", "image"],
+      ["svg", "image"],
+      ["mp4", "video"],
+      ["webm", "video"],
+      ["mov", "video"],
+      ["mkv", "video"],
+      ["mp3", "audio"],
+      ["wav", "audio"],
+      ["ogg", "audio"],
       ["pdf", "pdf"],
-      ["txt", "text"], ["md", "text"],
-      ["zip", "archive"], ["rar", "archive"], ["7z", "archive"], ["tar", "archive"], ["gz", "archive"],
-      ["js", "code"], ["ts", "code"], ["tsx", "code"], ["py", "code"], ["html", "code"], ["css", "code"],
+      ["txt", "text"],
+      ["md", "text"],
+      ["zip", "archive"],
+      ["rar", "archive"],
+      ["7z", "archive"],
+      ["tar", "archive"],
+      ["gz", "archive"],
+      ["js", "code"],
+      ["ts", "code"],
+      ["tsx", "code"],
+      ["py", "code"],
+      ["html", "code"],
+      ["css", "code"],
     ];
     for (const [ext, expected] of cases) {
       expect(getFileType(`file.${ext}`)).toBe(expected);
@@ -58,7 +77,16 @@ describe("getFileType - edge cases", () => {
 
 describe("getFileIcon", () => {
   test("returns a JSX element for every type", () => {
-    const extensions = ["png", "mp4", "mp3", "pdf", "txt", "zip", "js", "unknown"];
+    const extensions = [
+      "png",
+      "mp4",
+      "mp3",
+      "pdf",
+      "txt",
+      "zip",
+      "js",
+      "unknown",
+    ];
     for (const ext of extensions) {
       const icon = getFileIcon(`file.${ext}`);
       expect(icon).toBeDefined();

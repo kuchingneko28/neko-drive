@@ -39,7 +39,7 @@ describe("File metadata validation patterns", () => {
   });
 
   test("file exactly at chunk boundary", () => {
-    const totalChunks = Math.ceil(8192 * 1024 / (8192 * 1024));
+    const totalChunks = Math.ceil((8192 * 1024) / (8192 * 1024));
     expect(totalChunks).toBe(1);
   });
 

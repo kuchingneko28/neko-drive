@@ -9,10 +9,13 @@ let cryptoKey: CryptoKey | null = null;
 
 async function deriveKey(password: string, salt: Uint8Array) {
   const enc = new TextEncoder();
-  const keyMaterial = await self.crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, [
-    "deriveBits",
-    "deriveKey",
-  ]);
+  const keyMaterial = await self.crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits", "deriveKey"],
+  );
   return self.crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
@@ -44,7 +47,11 @@ self.onmessage = async (e: MessageEvent) => {
 
       const ivBuffer = chunkIv(iv, index);
 
-      const decrypted = await self.crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, cryptoKey, chunk);
+      const decrypted = await self.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: ivBuffer },
+        cryptoKey,
+        chunk,
+      );
 
       (self as unknown as Worker).postMessage(
         {
@@ -61,7 +68,11 @@ self.onmessage = async (e: MessageEvent) => {
 
       const ivBuffer = chunkIv(iv, index);
 
-      const encrypted = await self.crypto.subtle.encrypt({ name: "AES-GCM", iv: ivBuffer }, cryptoKey, chunk);
+      const encrypted = await self.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: ivBuffer },
+        cryptoKey,
+        chunk,
+      );
 
       (self as unknown as Worker).postMessage(
         {
@@ -72,6 +83,9 @@ self.onmessage = async (e: MessageEvent) => {
       );
     }
   } catch (error: unknown) {
-    (self as unknown as Worker).postMessage({ type: "ERROR", payload: (error as Error).message });
+    (self as unknown as Worker).postMessage({
+      type: "ERROR",
+      payload: (error as Error).message,
+    });
   }
 };

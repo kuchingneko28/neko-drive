@@ -38,7 +38,12 @@ export function DropZone({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+    <div
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       {children}
       {dragging && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm">
@@ -47,7 +52,9 @@ export function DropZone({ children }: { children: ReactNode }) {
               <Upload className="h-6 w-6 text-primary" />
             </div>
             <p className="text-base font-bold">Drop files to upload</p>
-            <p className="text-xs text-muted-foreground/60">Encrypted with AES-256-GCM</p>
+            <p className="text-xs text-muted-foreground/60">
+              Encrypted with AES-256-GCM
+            </p>
           </div>
         </div>
       )}

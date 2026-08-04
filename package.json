@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "cd server && NODE_ENV=production bun run src/index.ts",
-    "build": "cd client && bun run build",
+    "build": "cd client && bun run build && cd ../server && bun run typecheck",
     "server": "cd server && bun run dev",
     "client": "cd client && bun run dev",
     "dev": "concurrently \"bun run server\" \"bun run client\"",
@@ -13,7 +13,8 @@
     "install:all": "bun install && cd client && bun install && cd ../server && bun install"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14"
+    "@types/bun": "^1.3.14",
+    "prettier": "^3.9.6"
   },
   "peerDependencies": {
     "typescript": "^7.0.2"

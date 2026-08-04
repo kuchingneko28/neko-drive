@@ -2,16 +2,28 @@ import type { ChunkMetadata, FileMetadata } from "@/types";
 import { api } from "./api";
 import { isFileEncrypted } from "./file-utils";
 import { bytesToHex } from "./iv";
-import { createEncryptionWorker, createWorkerPool, encryptChunkPool, initWorker, initWorkerPool, decryptChunk } from "./worker";
+import {
+  createEncryptionWorker,
+  createWorkerPool,
+  encryptChunkPool,
+  initWorker,
+  initWorkerPool,
+  decryptChunk,
+} from "./worker";
 
 const CONCURRENCY = 3;
+
+// Aborts are signalled with DOMException("Aborted", "AbortError") — the same
+// error type the platform uses — so hooks can distinguish a deliberate cancel
+// from a real failure via `error instanceof DOMException && error.name === "AbortError"`.
+const abortError = () => new DOMException("Aborted", "AbortError");
 
 function runWithConcurrency<T>(
   tasks: (() => Promise<T>)[],
   concurrency: number,
   signal?: AbortSignal,
 ): Promise<T[]> {
-  if (signal?.aborted) throw new Error("Aborted");
+  if (signal?.aborted) throw abortError();
 
   return new Promise((resolve, reject) => {
     const results: T[] = new Array(tasks.length);
@@ -21,7 +33,7 @@ function runWithConcurrency<T>(
 
     const onAbort = () => {
       aborted = true;
-      reject(new Error("Aborted"));
+      reject(abortError());
     };
     signal?.addEventListener("abort", onAbort);
 
@@ -40,7 +52,7 @@ function runWithConcurrency<T>(
             resolve(results);
           }
         }
-} catch (error) {
+      } catch (error) {
         if (!aborted) {
           aborted = true;
           signal?.removeEventListener("abort", onAbort);
@@ -100,17 +112,21 @@ export async function processDownload({
   onChunkDownloaded,
   onProgress,
 }: DownloadOptions): Promise<string> {
-  const meta = await api.get<FileMetadata & { chunks: ChunkMetadata[] }>(`/files/${fileId}`);
+  const meta = await api.get<FileMetadata & { chunks: ChunkMetadata[] }>(
+    `/files/${fileId}`,
+  );
   if (!meta) throw new Error("File metadata not found");
 
   const { chunks, salt, iv: fileIv } = meta;
-  const encrypted = isFileEncrypted(salt, fileIv);
+  const encrypted = isFileEncrypted({ iv: fileIv, salt });
 
   if (!encrypted) {
     // Media elements can't send an Authorization header, so exchange the
     // master secret for a short-lived, file-scoped media token instead of
     // putting the secret itself in the URL.
-    const media = await api.get<{ token: string; expiresAt: number }>(`/media-token?file=${fileId}`);
+    const media = await api.get<{ token: string; expiresAt: number }>(
+      `/media-token?file=${fileId}`,
+    );
     return `${import.meta.env.VITE_API_URL}/stream/file/${fileId}?token=${media.token}`;
   }
 
@@ -129,7 +145,8 @@ export async function processDownload({
 
     // Stream from the first chunk we don't already have cached
     let resumeIndex = 0;
-    while (resumeIndex < totalChunks && initialBlobs[resumeIndex]) resumeIndex++;
+    while (resumeIndex < totalChunks && initialBlobs[resumeIndex])
+      resumeIndex++;
 
     const sessionStart = Date.now();
 
@@ -140,7 +157,10 @@ export async function processDownload({
     // network latency is hidden instead of serialized as N round-trips.
     for (let attempt = 0; ; attempt++) {
       try {
-        const res = await fetch(`${base}?start_chunk=${resumeIndex}`, { signal, headers });
+        const res = await fetch(`${base}?start_chunk=${resumeIndex}`, {
+          signal,
+          headers,
+        });
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
         if (!res.body) throw new Error("No response body");
 
@@ -150,32 +170,52 @@ export async function processDownload({
         // there, not restart at 0.
         let bytesRead = 0;
         for (let k = 0; k < resumeIndex; k++) bytesRead += chunks[k].size;
-        const encryptedTotal = meta.chunks.reduce((sum, chunk) => sum + chunk.size, 0);
+        const encryptedTotal = meta.chunks.reduce(
+          (sum, chunk) => sum + chunk.size,
+          0,
+        );
         let lastReport = 0;
 
         for (let i = resumeIndex; i < totalChunks; i++) {
           resumeIndex = i;
-          if (signal?.aborted) throw new Error("Aborted");
+          if (signal?.aborted) throw abortError();
 
-          const result = await readFrame(reader, chunks[i].size, leftover, (count) => {
-            bytesRead += count;
-            // Progress by bytes read, throttled — on slow links the first
-            // chunk can take tens of seconds, so don't sit at 0% waiting.
-            const now = Date.now();
-            if (now - lastReport > 250) {
-              lastReport = now;
-              const pct = Math.min(99, Math.round((bytesRead / encryptedTotal) * 100));
-              const elapsed = (now - sessionStart) / 1000 || 1;
-              const speed = bytesRead / elapsed;
-              onProgress?.(pct, speed, speed > 0 ? (encryptedTotal - bytesRead) / speed : 0);
-            }
-          });
+          const result = await readFrame(
+            reader,
+            chunks[i].size,
+            leftover,
+            (count) => {
+              bytesRead += count;
+              // Progress by bytes read, throttled — on slow links the first
+              // chunk can take tens of seconds, so don't sit at 0% waiting.
+              const now = Date.now();
+              if (now - lastReport > 250) {
+                lastReport = now;
+                const pct = Math.min(
+                  99,
+                  Math.round((bytesRead / encryptedTotal) * 100),
+                );
+                const elapsed = (now - sessionStart) / 1000 || 1;
+                const speed = bytesRead / elapsed;
+                onProgress?.(
+                  pct,
+                  speed,
+                  speed > 0 ? (encryptedTotal - bytesRead) / speed : 0,
+                );
+              }
+            },
+          );
           leftover = result.leftover;
           const buf = result.frame;
 
           if (initialBlobs[i]) continue; // cached (non-contiguous resume)
 
-          const decrypted = await decryptChunk(worker, buf.buffer as ArrayBuffer, i, fileIv!);
+          const decrypted = await decryptChunk(
+            worker,
+            buf.buffer as ArrayBuffer,
+            i,
+            fileIv!,
+          );
           const blob = new Blob([decrypted]);
           blobs[i] = blob;
           onChunkDownloaded?.(i, blob);
@@ -184,13 +224,17 @@ export async function processDownload({
         await reader.cancel().catch(() => {});
         break; // all chunks done
       } catch (error) {
-        if (signal?.aborted) throw new Error("Aborted");
+        if (signal?.aborted) throw abortError();
         if (attempt >= 2) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1)),
+        );
       }
     }
 
-    const finalBlob = new Blob(blobs, { type: meta.type || "application/octet-stream" });
+    const finalBlob = new Blob(blobs, {
+      type: meta.type || "application/octet-stream",
+    });
     return window.URL.createObjectURL(finalBlob);
   } finally {
     worker.terminate();
@@ -202,10 +246,23 @@ interface UploadOptions {
   shouldEncrypt: boolean;
   isLast: boolean;
   signal?: AbortSignal;
-  onProgress?: (progress: number, speed: number, eta: number, uploadedChunks?: number, totalChunks?: number, uploadedBytes?: number) => void;
+  onProgress?: (
+    progress: number,
+    speed: number,
+    eta: number,
+    uploadedChunks?: number,
+    totalChunks?: number,
+    uploadedBytes?: number,
+  ) => void;
 }
 
-export async function processUpload({ file, shouldEncrypt, isLast, signal, onProgress }: UploadOptions): Promise<void> {
+export async function processUpload({
+  file,
+  shouldEncrypt,
+  isLast,
+  signal,
+  onProgress,
+}: UploadOptions): Promise<void> {
   const CHUNK_SIZE = 8192 * 1024;
   let fileId = "";
   let pool: Worker[] | null = null;
@@ -216,7 +273,9 @@ export async function processUpload({ file, shouldEncrypt, isLast, signal, onPro
 
     const hash = await crypto.subtle.digest(
       "SHA-256",
-      new TextEncoder().encode(`${file.name}-${file.size}-${file.lastModified}`),
+      new TextEncoder().encode(
+        `${file.name}-${file.size}-${file.lastModified}`,
+      ),
     );
     fileId = bytesToHex(new Uint8Array(hash)).slice(0, 32);
 
@@ -225,7 +284,8 @@ export async function processUpload({ file, shouldEncrypt, isLast, signal, onPro
 
     if (shouldEncrypt) {
       pool = createWorkerPool(CONCURRENCY);
-      const gen = (n: number) => bytesToHex(crypto.getRandomValues(new Uint8Array(n)));
+      const gen = (n: number) =>
+        bytesToHex(crypto.getRandomValues(new Uint8Array(n)));
       iv = gen(16);
       salt = gen(32);
       await initWorkerPool(pool, MASTER_KEY!, salt);
@@ -254,72 +314,100 @@ export async function processUpload({ file, shouldEncrypt, isLast, signal, onPro
     const sessionStart = Date.now();
     let lastUpdate = 0;
 
-    const tasks = Array.from({ length: totalChunks }, (_, index) => async () => {
-      if (existingChunks.includes(index)) return;
-      if (signal?.aborted) throw new Error("Aborted");
+    const tasks = Array.from(
+      { length: totalChunks },
+      (_, index) => async () => {
+        if (existingChunks.includes(index)) return;
+        if (signal?.aborted) throw abortError();
 
-      const start = index * CHUNK_SIZE;
-      const blob = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
-      let payload = await blob.arrayBuffer();
+        const start = index * CHUNK_SIZE;
+        const blob = file.slice(start, Math.min(start + CHUNK_SIZE, file.size));
+        let payload = await blob.arrayBuffer();
 
-      if (shouldEncrypt && pool) {
-        payload = await encryptChunkPool(pool, payload, index, iv);
-      }
+        if (shouldEncrypt && pool) {
+          payload = await encryptChunkPool(pool, payload, index, iv);
+        }
 
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `${import.meta.env.VITE_API_URL}/upload/file/${fileId}/chunk`);
-        xhr.setRequestHeader("Authorization", import.meta.env.VITE_API_SECRET || "");
-        xhr.setRequestHeader("X-Chunk-Number", (index + 1).toString());
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open(
+            "POST",
+            `${import.meta.env.VITE_API_URL}/upload/file/${fileId}/chunk`,
+          );
+          xhr.setRequestHeader(
+            "Authorization",
+            import.meta.env.VITE_API_SECRET || "",
+          );
+          xhr.setRequestHeader("X-Chunk-Number", (index + 1).toString());
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable && onProgress) {
-            chunkProgress[index] = e.loaded;
-            const now = Date.now();
-            // ponytail: 1 Hz is plenty for a progress bar; 5 Hz caused
-            // whole-tree re-renders + BroadcastChannel churn during big uploads.
-            if (now - lastUpdate > 1000) {
-              const sent = chunkProgress.reduce((sum, value) => sum + value, 0);
-              const prog = Math.min(99, Math.round((sent / file.size) * 30 + (finishedChunks / totalChunks) * 70));
-              const elapsed = (now - sessionStart) / 1000;
-              const speed = elapsed > 0 ? sent / elapsed : 0;
-              onProgress(prog, speed, speed > 0 ? (file.size - sent) / speed : 0, finishedChunks, totalChunks, sent);
-              lastUpdate = now;
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && onProgress) {
+              chunkProgress[index] = e.loaded;
+              const now = Date.now();
+              // ponytail: 1 Hz is plenty for a progress bar; 5 Hz caused
+              // whole-tree re-renders + BroadcastChannel churn during big uploads.
+              if (now - lastUpdate > 1000) {
+                const sent = chunkProgress.reduce(
+                  (sum, value) => sum + value,
+                  0,
+                );
+                const prog = Math.min(
+                  99,
+                  Math.round(
+                    (sent / file.size) * 30 +
+                      (finishedChunks / totalChunks) * 70,
+                  ),
+                );
+                const elapsed = (now - sessionStart) / 1000;
+                const speed = elapsed > 0 ? sent / elapsed : 0;
+                onProgress(
+                  prog,
+                  speed,
+                  speed > 0 ? (file.size - sent) / speed : 0,
+                  finishedChunks,
+                  totalChunks,
+                  sent,
+                );
+                lastUpdate = now;
+              }
             }
-          }
-        };
+          };
 
-        xhr.onload = () => {
-          signal?.removeEventListener("abort", onAbort);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            chunkProgress[index] = payload.byteLength;
-            finishedChunks++;
-            resolve();
-          } else reject(new Error(`Upload failed: ${xhr.status}`));
-        };
-        xhr.onerror = () => {
-          signal?.removeEventListener("abort", onAbort);
-          reject(new Error("Network Error"));
-        };
-        xhr.onabort = () => {
-          signal?.removeEventListener("abort", onAbort);
-          reject(new Error("Aborted"));
-        };
+          xhr.onload = () => {
+            signal?.removeEventListener("abort", onAbort);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              chunkProgress[index] = payload.byteLength;
+              finishedChunks++;
+              resolve();
+            } else reject(new Error(`Upload failed: ${xhr.status}`));
+          };
+          xhr.onerror = () => {
+            signal?.removeEventListener("abort", onAbort);
+            reject(new Error("Network Error"));
+          };
+          xhr.onabort = () => {
+            signal?.removeEventListener("abort", onAbort);
+            reject(abortError());
+          };
 
-        const onAbort = () => xhr.abort();
-        if (signal) signal.addEventListener("abort", onAbort, { once: true });
-        xhr.send(payload);
-      });
-    });
+          const onAbort = () => xhr.abort();
+          if (signal) signal.addEventListener("abort", onAbort, { once: true });
+          xhr.send(payload);
+        });
+      },
+    );
 
     await runWithConcurrency(tasks, CONCURRENCY, signal);
-    await api.post(`/upload/file/${fileId}/finalize?skip_backup=${!isLast}`, {});
+    await api.post(
+      `/upload/file/${fileId}/finalize?skip_backup=${!isLast}`,
+      {},
+    );
   } catch (error) {
     if (signal?.aborted) {
       // tell the server to drop the pending file + its Discord chunks,
       // otherwise they're orphaned until the manual purge
       if (fileId) api.post(`/upload/file/${fileId}/abort`, {}).catch(() => {});
-      throw new Error("Aborted");
+      throw abortError();
     }
     throw error;
   } finally {

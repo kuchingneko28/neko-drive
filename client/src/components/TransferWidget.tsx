@@ -11,20 +11,34 @@ export function TransferWidget() {
   const { upload, download } = useTransfer();
   const isDL = download.isDownloading && download.mode === "download";
   const isActive = isDL || upload.isUploading || !!download.isPaused;
-  const progress = isDL || download.isPaused ? download.progress : upload.progress;
-  const fileName = isDL || download.isPaused ? download.fileName : upload.currentFileName;
+  const progress =
+    isDL || download.isPaused ? download.progress : upload.progress;
+  const fileName =
+    isDL || download.isPaused ? download.fileName : upload.currentFileName;
   const speed = (isDL ? download.speed : upload.speed) || 0;
-  const cancel = isDL || download.isPaused ? download.cancelDownload : upload.cancelUpload;
+  const cancel =
+    isDL || download.isPaused ? download.cancelDownload : upload.cancelUpload;
 
   // Slide the widget up each time a transfer starts.
   const widgetRef = useRef<HTMLDivElement>(null);
   useGSAP(
     () => {
-      if (!widgetRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (
+        !widgetRef.current ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+        return;
       gsap.fromTo(
         widgetRef.current,
         { opacity: 0, y: 16, scale: 0.98 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.3, ease: "power2.out", overwrite: true },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: true,
+        },
       );
     },
     { scope: widgetRef, dependencies: [isActive] },
@@ -51,15 +65,22 @@ export function TransferWidget() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold truncate">{fileName}</span>
-              <span className="text-xs font-bold tabular-nums text-primary shrink-0">{progress}%</span>
+              <span className="text-xs font-bold tabular-nums text-primary shrink-0">
+                {progress}%
+              </span>
             </div>
-            <Progress className="h-1 rounded-full bg-secondary/60 mt-1.5" value={progress} />
+            <Progress
+              className="h-1 rounded-full bg-secondary/60 mt-1.5"
+              value={progress}
+            />
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-muted-foreground/50 font-medium">
                 {formatBytes(speed)}/s
               </span>
               {download.isPaused && (
-                <span className="text-xs text-warning font-semibold">Paused</span>
+                <span className="text-xs text-warning font-semibold">
+                  Paused
+                </span>
               )}
             </div>
           </div>
@@ -68,7 +89,8 @@ export function TransferWidget() {
         <div className="flex items-center pr-1">
           {isDL && (
             <Button
-              variant="ghost" size="icon"
+              variant="ghost"
+              size="icon"
               className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-secondary/50"
               onClick={download.pauseDownload}
               title="Pause"
@@ -78,7 +100,8 @@ export function TransferWidget() {
           )}
           {download.isPaused && (
             <Button
-              variant="ghost" size="icon"
+              variant="ghost"
+              size="icon"
               className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
               onClick={download.resumeDownload}
               title="Resume"
@@ -87,7 +110,8 @@ export function TransferWidget() {
             </Button>
           )}
           <Button
-            variant="ghost" size="icon"
+            variant="ghost"
+            size="icon"
             className="h-7 w-7 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
             onClick={cancel}
             aria-label="Cancel transfer"

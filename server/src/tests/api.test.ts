@@ -1,7 +1,10 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { app } from "../app";
 
-const AUTH = { Authorization: "test-key", "Content-Type": "application/json" } as Record<string, string>;
+const AUTH = {
+  Authorization: "test-key",
+  "Content-Type": "application/json",
+} as Record<string, string>;
 
 // Mock Discord API responses
 const origFetch = globalThis.fetch;
@@ -13,13 +16,35 @@ beforeAll(() => {
     const u = typeof url === "string" ? url : url.toString();
 
     if (u.includes("discord.com/api/v10/channels") && init?.method === "POST")
-      return Promise.resolve(Response.json({ id: "999999999999999999", attachments: [{ id: "888888888888888888", url: "https://cdn.discord.com/attachments/test", filename: "chunk.bin", size: 100 }] }));
+      return Promise.resolve(
+        Response.json({
+          id: "999999999999999999",
+          attachments: [
+            {
+              id: "888888888888888888",
+              url: "https://cdn.discord.com/attachments/test",
+              filename: "chunk.bin",
+              size: 100,
+            },
+          ],
+        }),
+      );
 
     if (u.includes("discord.com/api/v10/attachments/refresh-urls"))
-      return Promise.resolve(Response.json({ refreshed_urls: [{ refreshed: "https://cdn.discord.com/attachments/refreshed" }] }));
+      return Promise.resolve(
+        Response.json({
+          refreshed_urls: [
+            { refreshed: "https://cdn.discord.com/attachments/refreshed" },
+          ],
+        }),
+      );
 
     if (u.includes("discord.com/api/v10/channels") && init?.method === "GET")
-      return Promise.resolve(Response.json({ attachments: [{ url: "https://cdn.discord.com/attachments/fetched" }] }));
+      return Promise.resolve(
+        Response.json({
+          attachments: [{ url: "https://cdn.discord.com/attachments/fetched" }],
+        }),
+      );
 
     if (u.includes("discord.com/api/v10/gateway"))
       return Promise.resolve(new Response("ok", { status: 200 }));
@@ -54,7 +79,8 @@ describe("Neko Drive API", () => {
 
   test("init upload", async () => {
     const res = await request("/api/upload/file/init", {
-      method: "POST", headers: AUTH,
+      method: "POST",
+      headers: AUTH,
       body: JSON.stringify(file),
     });
     expect(res.status).toBe(200);
@@ -63,7 +89,11 @@ describe("Neko Drive API", () => {
   test("upload chunk", async () => {
     const res = await request(`/api/upload/file/${file.id}/chunk`, {
       method: "POST",
-      headers: { ...AUTH, "Content-Type": "application/octet-stream", "X-Chunk-Number": "1" },
+      headers: {
+        ...AUTH,
+        "Content-Type": "application/octet-stream",
+        "X-Chunk-Number": "1",
+      },
       body: "Hello World!",
     });
     if (res.status === 200) {
@@ -74,13 +104,16 @@ describe("Neko Drive API", () => {
 
   test("finalize", async () => {
     const res = await request(`/api/upload/file/${file.id}/finalize`, {
-      method: "POST", headers: AUTH,
+      method: "POST",
+      headers: AUTH,
     });
     expect(res.status).toBe(200);
   });
 
   test("list files", async () => {
-    const res = await request("/api/files?limit=10&offset=0", { headers: AUTH });
+    const res = await request("/api/files?limit=10&offset=0", {
+      headers: AUTH,
+    });
     const json = (await res.json()) as { data: { items: unknown[] } };
     expect(res.status).toBe(200);
     expect(json.data.items).toBeDefined();
@@ -106,7 +139,8 @@ describe("Neko Drive API", () => {
 
   test("delete file", async () => {
     const res = await request(`/api/files/${file.id}`, {
-      method: "DELETE", headers: AUTH,
+      method: "DELETE",
+      headers: AUTH,
     });
     expect(res.status).toBe(200);
   });

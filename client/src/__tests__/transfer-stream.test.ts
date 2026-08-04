@@ -10,7 +10,10 @@ function streamOf(parts: Uint8Array[]): ReadableStream<Uint8Array> {
   });
 }
 
-async function collectFrames(parts: Uint8Array[], sizes: number[]): Promise<Uint8Array[]> {
+async function collectFrames(
+  parts: Uint8Array[],
+  sizes: number[],
+): Promise<Uint8Array[]> {
   const reader = streamOf(parts).getReader();
   const frames: Uint8Array[] = [];
   let leftover: Uint8Array | null = null;
@@ -62,7 +65,10 @@ describe("readFrame stream frame assembly", () => {
 
   test("empty reads between frames are handled", async () => {
     const data = new Uint8Array([9, 8, 7, 6, 5, 4]);
-    const frames = await collectFrames([new Uint8Array(0), data.subarray(0, 3), data.subarray(3)], [3, 3]);
+    const frames = await collectFrames(
+      [new Uint8Array(0), data.subarray(0, 3), data.subarray(3)],
+      [3, 3],
+    );
     expect(Array.from(frames[0])).toEqual([9, 8, 7]);
     expect(Array.from(frames[1])).toEqual([6, 5, 4]);
   });

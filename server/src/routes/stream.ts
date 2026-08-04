@@ -19,7 +19,9 @@ stream.get("/file/:id", async (ctx) => {
   const rangeHeader = ctx.req.header("Range");
 
   try {
-    const file = db.prepare("SELECT size, name, type FROM files WHERE id = ?").get(fileId) as FileMetadata | undefined;
+    const file = db
+      .prepare("SELECT size, name, type FROM files WHERE id = ?")
+      .get(fileId) as FileMetadata | undefined;
     if (!file) return apiResponse.error(ctx, "File not found", 404);
 
     let start = 0;
@@ -50,7 +52,9 @@ stream.get("/file/:id", async (ctx) => {
     }
 
     const chunks = db
-      .prepare("SELECT idx, size, url, message_id, channel_id FROM chunks WHERE file_id = ? ORDER BY idx ASC")
+      .prepare(
+        "SELECT idx, size, url, message_id, channel_id FROM chunks WHERE file_id = ? ORDER BY idx ASC",
+      )
       .all(fileId) as ChunkMetadata[];
 
     // Map the requested [start, end] onto per-chunk segments (a range may span
@@ -80,7 +84,8 @@ stream.get("/file/:id", async (ctx) => {
     // Fetch the first segment eagerly so upstream failures surface as a 502
     const first = segments[0];
     const firstUrl = await resolveChunkUrlWithFallback(first.chunk);
-    if (!firstUrl) return apiResponse.error(ctx, "Failed to resolve chunk URL", 502);
+    if (!firstUrl)
+      return apiResponse.error(ctx, "Failed to resolve chunk URL", 502);
     const firstRes = await fetch(firstUrl, {
       headers: { Range: `bytes=${first.start}-${first.end}` },
       signal: AbortSignal.timeout(120_000),
@@ -94,7 +99,9 @@ stream.get("/file/:id", async (ctx) => {
     // Pull state is captured here (NOT inside pull()) so successive pulls
     // continue from where the previous one stopped.
     let segIndex = 0;
-    let reader: ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>> | null = null;
+    let reader: ReadableStreamDefaultReader<
+      Uint8Array<ArrayBufferLike>
+    > | null = null;
     let nextRes: Response | null = firstRes;
 
     const body = new ReadableStream<Uint8Array>({
@@ -129,7 +136,9 @@ stream.get("/file/:id", async (ctx) => {
               controller.error(new Error("Upstream has no body"));
               return;
             }
-            current = res.body.getReader() as ReadableStreamDefaultReader<Uint8Array<ArrayBufferLike>>;
+            current = res.body.getReader() as ReadableStreamDefaultReader<
+              Uint8Array<ArrayBufferLike>
+            >;
             reader = current;
           }
           // Guard for control-flow narrowing: `current` is either the value
@@ -154,7 +163,8 @@ stream.get("/file/:id", async (ctx) => {
     // Media elements (<img>/<video>) get inline; plain downloads get attachment,
     // so the response is a real file even cross-origin (where the download attr
     // on <a> is ignored).
-    const disposition = ctx.req.query("inline") === "true" ? "inline" : "attachment";
+    const disposition =
+      ctx.req.query("inline") === "true" ? "inline" : "attachment";
     const encodedFilename = encodeURIComponent(file.name);
 
     return new Response(body, {

@@ -31,7 +31,9 @@ export function DeleteFileDialog({ fileId, fileName, status, onClose }: Props) {
     setLoading(true);
     try {
       await api.delete(`/files/${fileId}`);
-      toast.success(status === "active" ? `Moved to trash.` : `Deleted permanently.`);
+      toast.success(
+        status === "active" ? `Moved to trash.` : `Deleted permanently.`,
+      );
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["system-stats"] });
       onClose();
@@ -56,15 +58,23 @@ export function DeleteFileDialog({ fileId, fileName, status, onClose }: Props) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-lg text-xs font-medium" disabled={loading}>
+          <AlertDialogCancel
+            className="rounded-lg text-xs font-medium"
+            disabled={loading}
+          >
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-medium"
-            onClick={(e) => { e.preventDefault(); handleDelete(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
             disabled={loading}
           >
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            ) : null}
             {status === "active" ? "Move to Trash" : "Delete Forever"}
           </AlertDialogAction>
         </AlertDialogFooter>

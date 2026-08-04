@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Download, Loader2, Lock, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getFileType } from "@/lib/file-utils";
@@ -16,7 +22,16 @@ interface Props {
   fileSize?: number;
 }
 
-export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading, isEncrypted, progress, fileSize }: Props) {
+export function FilePreviewModal({
+  isOpen,
+  onClose,
+  fileName,
+  fileUrl,
+  isLoading,
+  isEncrypted,
+  progress,
+  fileSize,
+}: Props) {
   const [err, setErr] = useState(false);
   const type = getFileType(fileName || "");
 
@@ -25,10 +40,15 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-4xl h-[85dvh] flex flex-col p-0 gap-0 overflow-hidden bg-card">
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-4xl h-[85dvh] flex flex-col p-0 gap-0 overflow-hidden bg-card"
+      >
         <DialogHeader className="p-4 border-b border-border/10 flex flex-row items-center justify-between shrink-0">
           <div className="flex-1 min-w-0">
-            <DialogTitle className="text-base font-semibold truncate">{fileName || "Loading..."}</DialogTitle>
+            <DialogTitle className="text-base font-semibold truncate">
+              {fileName || "Loading..."}
+            </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground/60 mt-0.5">
               {isLoading ? (
                 <span className="flex items-center gap-1.5">
@@ -36,15 +56,27 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
                   {isEncrypted ? "Decrypting..." : "Loading..."}
                 </span>
               ) : (
-                <>{isEncrypted ? "Decrypted" : "Preview"} &middot; {type.toUpperCase()}</>
+                <>
+                  {isEncrypted ? "Decrypted" : "Preview"} &middot;{" "}
+                  {type.toUpperCase()}
+                </>
               )}
             </DialogDescription>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {fileUrl && !isLoading && (
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs font-medium px-2" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs font-medium px-2"
+                asChild
+              >
                 <a
-                  href={fileUrl.startsWith("blob:") ? fileUrl : fileUrl.replace("&inline=true", "")}
+                  href={
+                    fileUrl.startsWith("blob:")
+                      ? fileUrl
+                      : fileUrl.replace("&inline=true", "")
+                  }
                   download={fileName || "download"}
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -52,7 +84,13 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
                 </a>
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label="Close preview">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={onClose}
+              aria-label="Close preview"
+            >
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -66,7 +104,9 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
                 {isEncrypted ? "Decrypting" : "Loading"}... {progress}%
               </p>
               {fileSize && fileSize > 100 * 1024 * 1024 && (
-                <p className="text-xs text-muted-foreground/60">Large file ({formatBytes(fileSize)})</p>
+                <p className="text-xs text-muted-foreground/60">
+                  Large file ({formatBytes(fileSize)})
+                </p>
               )}
             </div>
           ) : err ? (
@@ -77,22 +117,37 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
           ) : fileUrl ? (
             <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
               {type === "image" && (
-                <img src={fileUrl} alt={fileName || ""}
+                <img
+                  src={fileUrl}
+                  alt={fileName || ""}
                   className="max-w-full max-h-full object-contain rounded-lg"
-                  onError={() => setErr(true)} />
+                  onError={() => setErr(true)}
+                />
               )}
               {type === "video" && (
-                <video src={fileUrl} controls autoPlay
+                <video
+                  src={fileUrl}
+                  controls
+                  autoPlay
                   className="w-full h-full rounded-lg bg-black"
-                  onError={() => setErr(true)} />
+                  onError={() => setErr(true)}
+                />
               )}
               {type === "audio" && (
-                <audio src={fileUrl} controls className="w-full max-w-sm"
-                  onError={() => setErr(true)} />
+                <audio
+                  src={fileUrl}
+                  controls
+                  className="w-full max-w-sm"
+                  onError={() => setErr(true)}
+                />
               )}
               {(type === "pdf" || type === "text" || type === "code") && (
-                <iframe src={fileUrl} className="w-full h-full rounded-lg border-0 bg-white" title="Preview"
-                  onError={() => setErr(true)} />
+                <iframe
+                  src={fileUrl}
+                  className="w-full h-full rounded-lg border-0 bg-white"
+                  title="Preview"
+                  onError={() => setErr(true)}
+                />
               )}
             </div>
           ) : null}

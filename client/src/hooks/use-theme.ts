@@ -4,11 +4,15 @@ export type Theme = "light" | "dark" | "system";
 
 export function resolveTheme(theme: Theme): "light" | "dark" {
   if (theme !== "system") return theme;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export function useTheme(initial: Theme = "system") {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem("neko-theme") as Theme | null) || initial);
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem("neko-theme") as Theme | null) || initial,
+  );
   const effectiveTheme = resolveTheme(theme);
 
   // Apply theme to <html> and persist

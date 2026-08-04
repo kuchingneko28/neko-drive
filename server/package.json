@@ -2,12 +2,14 @@
   "name": "server",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "bun test src/tests/*.test.ts"
   },
   "dependencies": {
     "hono": "^4.11.4"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "^1.3.14",
+    "typescript": "^7.0.2"
   }
 }

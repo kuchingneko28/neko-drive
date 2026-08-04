@@ -15,7 +15,9 @@ import stream from "./routes/stream";
 import system from "./routes/system";
 import upload from "./routes/upload";
 
-export const app = new Hono<{ Variables: { mediaToken?: { fileId: string } } }>();
+export const app = new Hono<{
+  Variables: { mediaToken?: { fileId: string } };
+}>();
 
 const MAX_BODY = 10 * 1024 * 1024; // 10MB max body for non-chunk API calls
 
@@ -42,10 +44,14 @@ app.use("/api/*", async (ctx, next) => {
 
   if (!API_SECRET) {
     if (process.env.NODE_ENV === "production") {
-      logger.error("Security configuration error: API_SECRET is not set in production environment.");
+      logger.error(
+        "Security configuration error: API_SECRET is not set in production environment.",
+      );
       process.exit(1);
     }
-    logger.warn("Security warning: API_SECRET is not set. The server is vulnerable.");
+    logger.warn(
+      "Security warning: API_SECRET is not set. The server is vulnerable.",
+    );
     return next();
   }
 
@@ -61,7 +67,9 @@ app.use("/api/*", async (ctx, next) => {
     }
   }
 
-  logger.warn(`Unauthorized access attempt from ${ctx.req.header("User-Agent")}`);
+  logger.warn(
+    `Unauthorized access attempt from ${ctx.req.header("User-Agent")}`,
+  );
   return apiResponse.error(ctx, "Unauthorized", 401);
 });
 

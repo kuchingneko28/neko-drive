@@ -30,14 +30,17 @@ export async function uploadToDiscord(
   const formData = new FormData();
   formData.append("files[0]", new Blob([buffer]), filename);
 
-  const response = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
+  const response = await fetch(
+    `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bot ${BOT_TOKEN}`,
+      },
+      body: formData,
+      signal,
     },
-    body: formData,
-    signal,
-  });
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -72,10 +75,13 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
   // Optimization: If only 1 message, use single delete (Discord Bulk API often requires 2-100)
   if (messageIds.length === 1) {
     try {
-      await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageIds[0]}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bot ${BOT_TOKEN}` },
-      });
+      await fetch(
+        `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageIds[0]}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bot ${BOT_TOKEN}` },
+        },
+      );
       logger.debug(`Successfully deleted single chunk: ${messageIds[0]}`);
       return;
     } catch (error) {
@@ -93,21 +99,26 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
   for (const batch of batches) {
     try {
       // Attempt Discord's Bulk Delete endpoint
-      const response = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bot ${BOT_TOKEN}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${BOT_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ messages: batch }),
         },
-        body: JSON.stringify({ messages: batch }),
-      });
+      );
 
       if (response.ok) {
         logger.debug(`Successfully bulk-deleted ${batch.length} chunks`);
       } else {
         // 2. Hybrid Fallback: If bulk-delete fails (likely messages > 14 days old),
         // we switch to optimized parallel individual deletions.
-        logger.warn(`Bulk-delete failed (${response.status}), falling back to concurrent deletion`);
+        logger.warn(
+          `Bulk-delete failed (${response.status}), falling back to concurrent deletion`,
+        );
 
         // Use a concurrency limit to avoid aggressive rate limits
         const limit = 5;
@@ -116,12 +127,18 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
           await Promise.all(
             individualBatch.map(async (id) => {
               try {
-                await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${id}`, {
-                  method: "DELETE",
-                  headers: { Authorization: `Bot ${BOT_TOKEN}` },
-                });
+                await fetch(
+                  `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${id}`,
+                  {
+                    method: "DELETE",
+                    headers: { Authorization: `Bot ${BOT_TOKEN}` },
+                  },
+                );
               } catch (error) {
-                logger.error(`Failed to delete individual message ${id}:`, error);
+                logger.error(
+                  `Failed to delete individual message ${id}:`,
+                  error,
+                );
               }
             }),
           );
@@ -142,34 +159,49 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
 export async function refreshDiscordUrls(urls: string[]): Promise<string[]> {
   if (urls.length === 0) return [];
 
-  const response = await fetch(`https://discord.com/api/v10/attachments/refresh-urls`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `https://discord.com/api/v10/attachments/refresh-urls`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bot ${BOT_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attachment_urls: urls }),
     },
-    body: JSON.stringify({ attachment_urls: urls }),
-  });
+  );
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Discord URL Refresh Failed: ${response.status} ${errorBody}`);
+    throw new Error(
+      `Discord URL Refresh Failed: ${response.status} ${errorBody}`,
+    );
   }
 
-  const data = (await response.json()) as { refreshed_urls: { refreshed: string }[] };
-  return data.refreshed_urls.map((item: { refreshed: string }) => item.refreshed);
+  const data = (await response.json()) as {
+    refreshed_urls: { refreshed: string }[];
+  };
+  return data.refreshed_urls.map(
+    (item: { refreshed: string }) => item.refreshed,
+  );
 }
 
 /**
  * Get a fresh CDN URL for an attachment (JIT)
  */
-export async function getDiscordCDNUrl(messageId: string, channelId?: string): Promise<string> {
+export async function getDiscordCDNUrl(
+  messageId: string,
+  channelId?: string,
+): Promise<string> {
   const chId = channelId || CHANNEL_ID;
-  const response = await fetch(`https://discord.com/api/v10/channels/${chId}/messages/${messageId}`, {
-    headers: {
-      Authorization: `Bot ${BOT_TOKEN}`,
+  const response = await fetch(
+    `https://discord.com/api/v10/channels/${chId}/messages/${messageId}`,
+    {
+      headers: {
+        Authorization: `Bot ${BOT_TOKEN}`,
+      },
     },
-  });
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch message ${messageId}: ${response.status}`);

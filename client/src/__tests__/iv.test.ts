@@ -6,7 +6,9 @@ describe("chunkIv - per-chunk AES-GCM IV derivation", () => {
 
   test("keeps the first 12 bytes of the file IV (random prefix)", () => {
     const iv = chunkIv(FILE_IV, 0);
-    expect(Array.from(iv.slice(0, 12))).toEqual([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb]);
+    expect(Array.from(iv.slice(0, 12))).toEqual([
+      0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb,
+    ]);
   });
 
   test("last 4 bytes encode the chunk index big-endian", () => {
@@ -29,7 +31,9 @@ describe("chunkIv - per-chunk AES-GCM IV derivation", () => {
   });
 
   test("different file IVs produce different chunk IVs", () => {
-    expect(chunkIv(FILE_IV, 3)).not.toEqual(chunkIv("10112233445566778899aabbccddeeff", 3));
+    expect(chunkIv(FILE_IV, 3)).not.toEqual(
+      chunkIv("10112233445566778899aabbccddeeff", 3),
+    );
   });
 });
 

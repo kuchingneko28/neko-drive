@@ -12,9 +12,12 @@ import { bulkDeleteFromDiscord } from "./discord";
  * `cutoffSeconds` is a unix timestamp in seconds (matches `files.created_at`);
  * default keeps the current "purge everything" behavior. Never throws.
  */
-export function purgePendingFiles(cutoffSeconds = Number.MAX_SAFE_INTEGER): number {
+export function purgePendingFiles(
+  cutoffSeconds = Number.MAX_SAFE_INTEGER,
+): number {
   try {
-    const where = "file_id IN (SELECT id FROM files WHERE status = 'pending' AND created_at < ?)";
+    const where =
+      "file_id IN (SELECT id FROM files WHERE status = 'pending' AND created_at < ?)";
     const chunks = db
       .prepare(`SELECT message_id FROM chunks WHERE ${where}`)
       .all(cutoffSeconds) as { message_id: string }[];
@@ -22,7 +25,9 @@ export function purgePendingFiles(cutoffSeconds = Number.MAX_SAFE_INTEGER): numb
     const messageIds = chunks.map((chunk) => chunk.message_id);
 
     db.run(`DELETE FROM chunks WHERE ${where}`, [cutoffSeconds]);
-    db.run(`DELETE FROM files WHERE status = 'pending' AND created_at < ?`, [cutoffSeconds]);
+    db.run(`DELETE FROM files WHERE status = 'pending' AND created_at < ?`, [
+      cutoffSeconds,
+    ]);
 
     if (messageIds.length > 0) {
       bulkDeleteFromDiscord(messageIds).catch((error: unknown) => {
@@ -31,7 +36,9 @@ export function purgePendingFiles(cutoffSeconds = Number.MAX_SAFE_INTEGER): numb
     }
 
     if (messageIds.length > 0) {
-      logger.info(`Purged ${messageIds.length} shards from stale pending uploads`);
+      logger.info(
+        `Purged ${messageIds.length} shards from stale pending uploads`,
+      );
     }
     return messageIds.length;
   } catch (error: unknown) {

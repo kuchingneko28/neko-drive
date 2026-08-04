@@ -46,23 +46,37 @@ describe("getFileType", () => {
 
 describe("isFileEncrypted", () => {
   test("returns true for valid hex iv and salt", () => {
-    expect(isFileEncrypted("0123456789abcdef0123456789abcdef", "abcdef0123456789abcdef0123456789")).toBe(true);
+    expect(
+      isFileEncrypted({
+        iv: "0123456789abcdef0123456789abcdef",
+        salt: "abcdef0123456789abcdef0123456789",
+      }),
+    ).toBe(true);
   });
 
   test("returns false for null iv", () => {
-    expect(isFileEncrypted(null, "abcdef0123456789abcdef0123456789")).toBe(false);
+    expect(
+      isFileEncrypted({ iv: null, salt: "abcdef0123456789abcdef0123456789" }),
+    ).toBe(false);
   });
 
   test("returns false for null salt", () => {
-    expect(isFileEncrypted("0123456789abcdef0123456789abcdef", null)).toBe(false);
+    expect(
+      isFileEncrypted({ iv: "0123456789abcdef0123456789abcdef", salt: null }),
+    ).toBe(false);
   });
 
   test("returns false for empty strings", () => {
-    expect(isFileEncrypted("", "")).toBe(false);
+    expect(isFileEncrypted({ iv: "", salt: "" })).toBe(false);
   });
 
   test("returns false for all zeros", () => {
-    expect(isFileEncrypted("00000000000000000000000000000000", "00000000000000000000000000000000")).toBe(false);
+    expect(
+      isFileEncrypted({
+        iv: "00000000000000000000000000000000",
+        salt: "00000000000000000000000000000000",
+      }),
+    ).toBe(false);
   });
 });
 

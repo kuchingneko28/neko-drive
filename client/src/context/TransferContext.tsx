@@ -1,6 +1,12 @@
 import { useDownload } from "@/hooks/use-download";
 import { useUpload } from "@/hooks/use-upload";
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 
 interface TransferContextType {
   upload: ReturnType<typeof useUpload>;
@@ -72,8 +78,11 @@ export function TransferProvider({ children }: { children: ReactNode }) {
   }, [
     // Transition-only: broadcasting on every progress tick made every open
     // tab write document.title + handle messages at upload frequency.
-    download.isDownloading, download.fileName, download.mode,
-    upload.isUploading, upload.currentFileName,
+    download.isDownloading,
+    download.fileName,
+    download.mode,
+    upload.isUploading,
+    upload.currentFileName,
   ]);
 
   useEffect(() => {
@@ -84,7 +93,8 @@ export function TransferProvider({ children }: { children: ReactNode }) {
         new Notification(title, { body, icon: "/vite.svg" });
       } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then((p) => {
-          if (p === "granted") new Notification(title, { body, icon: "/vite.svg" });
+          if (p === "granted")
+            new Notification(title, { body, icon: "/vite.svg" });
         });
       }
     };
@@ -105,7 +115,12 @@ export function TransferProvider({ children }: { children: ReactNode }) {
 
     document.addEventListener("visibilitychange", handle);
     return () => document.removeEventListener("visibilitychange", handle);
-  }, [download.isDownloading, download.progress, upload.isUploading, upload.progress]);
+  }, [
+    download.isDownloading,
+    download.progress,
+    upload.isUploading,
+    upload.progress,
+  ]);
 
   return (
     <TransferContext.Provider value={{ upload, download }}>
@@ -116,6 +131,7 @@ export function TransferProvider({ children }: { children: ReactNode }) {
 
 export function useTransfer() {
   const context = useContext(TransferContext);
-  if (!context) throw new Error("useTransfer must be used within a TransferProvider");
+  if (!context)
+    throw new Error("useTransfer must be used within a TransferProvider");
   return context;
 }

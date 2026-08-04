@@ -19,7 +19,10 @@ interface EmptyTrashDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) {
+export function EmptyTrashDialog({
+  open,
+  onOpenChange,
+}: EmptyTrashDialogProps) {
   const [isEmptying, setIsEmptying] = useState(false);
   const queryClient = useQueryClient();
 
@@ -43,19 +46,26 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-xl bg-card">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-base font-semibold">Empty trash?</AlertDialogTitle>
+          <AlertDialogTitle className="text-base font-semibold">
+            Empty trash?
+          </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground">
-            This will permanently delete all trashed files. This cannot be undone.
+            This will permanently delete all trashed files. This cannot be
+            undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-lg text-xs font-medium">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-lg text-xs font-medium">
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction
             className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs font-medium"
             disabled={isEmptying}
             onClick={handleEmpty}
           >
-            {isEmptying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+            {isEmptying ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+            ) : null}
             Empty Trash
           </AlertDialogAction>
         </AlertDialogFooter>

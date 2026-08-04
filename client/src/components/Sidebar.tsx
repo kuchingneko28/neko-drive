@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { cn, formatBytes } from "@/lib/utils";
-import { useSystemHealth } from "@/hooks/useSystemHealth";
+import { useSystemHealth } from "@/hooks/use-system-health";
 import { Files, HardDrive, Plus, Trash2 } from "lucide-react";
 
 interface SidebarProps {
@@ -10,7 +10,12 @@ interface SidebarProps {
   onViewChange?: (view: "active" | "trash") => void;
 }
 
-export function Sidebar({ className, onOpenUpload, currentView = "active", onViewChange }: SidebarProps) {
+export function Sidebar({
+  className,
+  onOpenUpload,
+  currentView = "active",
+  onViewChange,
+}: SidebarProps) {
   const { stats } = useSystemHealth();
 
   const used = stats?.storage.totalSize || 0;
@@ -24,18 +29,30 @@ export function Sidebar({ className, onOpenUpload, currentView = "active", onVie
   const trashCount = stats?.trashedFiles || 0;
   const menuItems = [
     { icon: Files, label: "All Files", value: "active" as const, count: files },
-    { icon: Trash2, label: "Trash", value: "trash" as const, count: trashCount },
+    {
+      icon: Trash2,
+      label: "Trash",
+      value: "trash" as const,
+      count: trashCount,
+    },
   ];
 
   return (
-    <div className={cn("flex flex-col h-full bg-sidebar border-r border-border/30 px-4 pb-4 pt-3", className)}>
+    <div
+      className={cn(
+        "flex flex-col h-full bg-sidebar border-r border-border/30 px-4 pb-4 pt-3",
+        className,
+      )}
+    >
       <div className="flex items-center gap-3 px-1 mb-5">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
           <HardDrive className="h-4 w-4 text-primary-foreground" />
         </div>
         <div>
           <p className="text-sm font-bold tracking-tight">Neko Drive</p>
-          <p className="text-xs font-semibold text-muted-foreground/50">Secure Cloud</p>
+          <p className="text-xs font-semibold text-muted-foreground/50">
+            Secure Cloud
+          </p>
         </div>
       </div>
 
@@ -62,10 +79,17 @@ export function Sidebar({ className, onOpenUpload, currentView = "active", onVie
             )}
             onClick={() => onViewChange?.(item.value)}
           >
-            <item.icon className={cn("h-4 w-4", currentView === item.value ? "text-primary" : "")} />
+            <item.icon
+              className={cn(
+                "h-4 w-4",
+                currentView === item.value ? "text-primary" : "",
+              )}
+            />
             <span className="flex-1 text-left">{item.label}</span>
             {item.count > 0 && (
-              <span className="text-xs font-bold tabular-nums text-muted-foreground/60">{item.count}</span>
+              <span className="text-xs font-bold tabular-nums text-muted-foreground/60">
+                {item.count}
+              </span>
             )}
           </Button>
         ))}
@@ -89,7 +113,9 @@ export function Sidebar({ className, onOpenUpload, currentView = "active", onVie
               <p className="text-muted-foreground/50">Files</p>
             </div>
             <div className="text-right">
-              <p className="font-semibold text-foreground">{formatBytes(avgSize)}</p>
+              <p className="font-semibold text-foreground">
+                {formatBytes(avgSize)}
+              </p>
               <p className="text-muted-foreground/50">Avg file</p>
             </div>
           </div>

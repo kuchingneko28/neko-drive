@@ -9,7 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransfer } from "@/context/TransferContext";
 import { useFiles } from "@/hooks/use-files";
-import { getFileIcon, getFileIconColor, isFileEncrypted } from "@/lib/file-utils";
+import {
+  getFileIcon,
+  getFileIconColor,
+  isFileEncrypted,
+} from "@/lib/file-utils";
 import { api } from "@/lib/api";
 import { cn, formatBytes, formatRelativeDate } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,22 +43,35 @@ const PAGE_SIZE = 10;
 function FileTypeBadge({ fileName }: { fileName: string }) {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   return (
-    <Badge variant="secondary" className="rounded bg-secondary/50 text-muted-foreground px-1.5">
+    <Badge
+      variant="secondary"
+      className="rounded bg-secondary/50 text-muted-foreground px-1.5"
+    >
       {ext}
     </Badge>
   );
 }
 
-export function StackList({ status = "active" }: { status?: "active" | "trashed" }) {
+export function FileListView({
+  status = "active",
+}: {
+  status?: "active" | "trashed";
+}) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState("created_at");
   const [order, setOrder] = useState<"ASC" | "DESC">("DESC");
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
   const [restoringId, setRestoringId] = useState<string | null>(null);
-  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -71,12 +88,25 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
     setPage(0);
   }, [status, sort, order]);
 
-  const { data, isLoading, isError } = useFiles(page, PAGE_SIZE, debouncedSearch, status, sort, order);
+  const { data, isLoading, isError } = useFiles(
+    page,
+    PAGE_SIZE,
+    debouncedSearch,
+    status,
+    sort,
+    order,
+  );
 
   // Deleting/restoring the last file on a page can leave a stale empty page —
   // back up one page when the current one comes back empty but files exist.
   useEffect(() => {
-    if (!isLoading && data && data.items.length === 0 && data.total > 0 && page > 0) {
+    if (
+      !isLoading &&
+      data &&
+      data.items.length === 0 &&
+      data.total > 0 &&
+      page > 0
+    ) {
       setPage(page - 1);
     }
   }, [data, isLoading, page]);
@@ -89,7 +119,14 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
       gsap.fromTo(
         ".file-row",
         { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", stagger: 0.04, overwrite: true },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.25,
+          ease: "power2.out",
+          stagger: 0.04,
+          overwrite: true,
+        },
       );
     },
     { scope: listRef, dependencies: [data?.items, status] },
@@ -102,7 +139,14 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
       gsap.fromTo(
         ".file-top",
         { opacity: 0, y: -8 },
-        { opacity: 1, y: 0, duration: 0.25, ease: "power2.out", stagger: 0.06, overwrite: true },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.25,
+          ease: "power2.out",
+          stagger: 0.06,
+          overwrite: true,
+        },
       );
     },
     { scope: listRef, dependencies: [status] },
@@ -117,7 +161,8 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
     }
   };
   const { download: dc, upload: uc } = useTransfer();
-  const { downloadFile, previewFile, clearPreview, isDownloading, progress } = dc;
+  const { downloadFile, previewFile, clearPreview, isDownloading, progress } =
+    dc;
   const { uploadFiles } = uc;
 
   const handleUploadClick = () => fileInputRef.current?.click();
@@ -154,19 +199,35 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
             placeholder="Search files..."
             className="pl-9 h-9 bg-secondary/40 dark:bg-secondary/40 border-transparent rounded-lg text-xs font-medium placeholder:text-muted-foreground/40"
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
           />
         </div>
         {!debouncedSearch && data && data.total > 0 && (
-          <span className="text-xs text-muted-foreground/60 font-medium shrink-0">{data.total} file{data.total !== 1 ? "s" : ""}</span>
+          <span className="text-xs text-muted-foreground/60 font-medium shrink-0">
+            {data.total} file{data.total !== 1 ? "s" : ""}
+          </span>
         )}
         {status === "trashed" && (data?.items.length || 0) > 0 && (
-          <Button variant="destructive" size="sm" onClick={() => setTrashOpen(true)} className="rounded-lg h-9 px-3 text-xs font-semibold">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setTrashOpen(true)}
+            className="rounded-lg h-9 px-3 text-xs font-semibold"
+          >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
             Empty Trash
           </Button>
         )}
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFilePick} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFilePick}
+        />
       </div>
 
       <div className="file-top flex items-center gap-1">
@@ -177,7 +238,8 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
         ].map(({ key, label }) => (
           <Button
             key={key}
-            variant="ghost" size="sm"
+            variant="ghost"
+            size="sm"
             onClick={() => toggleSort(key)}
             className={cn(
               "h-7 px-2 text-xs font-medium rounded-md",
@@ -187,11 +249,12 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
             )}
           >
             {label}
-            {sort === key && (
-              order === "ASC"
-                ? <ArrowUp className="h-3 w-3 ml-0.5" />
-                : <ArrowDown className="h-3 w-3 ml-0.5" />
-            )}
+            {sort === key &&
+              (order === "ASC" ? (
+                <ArrowUp className="h-3 w-3 ml-0.5" />
+              ) : (
+                <ArrowDown className="h-3 w-3 ml-0.5" />
+              ))}
           </Button>
         ))}
       </div>
@@ -199,7 +262,10 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
       {isLoading ? (
         <div className="space-y-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-secondary/40">
+            <div
+              key={i}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-secondary/40"
+            >
               <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
               <div className="flex-1 space-y-1.5">
                 <Skeleton className="h-4 w-48" />
@@ -216,11 +282,17 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
           </div>
           <div className="text-center space-y-1">
             <p className="text-base font-semibold">Failed to load files</p>
-            <p className="text-sm text-muted-foreground/60">Check your connection and try again</p>
+            <p className="text-sm text-muted-foreground/60">
+              Check your connection and try again
+            </p>
           </div>
           <Button
-            variant="outline" size="sm" className="rounded-lg text-xs"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["files"] })}
+            variant="outline"
+            size="sm"
+            className="rounded-lg text-xs"
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["files"] })
+            }
           >
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             Retry
@@ -233,7 +305,11 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
           </div>
           <div className="text-center space-y-1">
             <p className="text-base font-semibold">
-              {search ? "No results found" : status === "trashed" ? "Trash is empty" : "Drive is empty"}
+              {search
+                ? "No results found"
+                : status === "trashed"
+                  ? "Trash is empty"
+                  : "Drive is empty"}
             </p>
             <p className="text-sm text-muted-foreground/60">
               {search
@@ -244,7 +320,10 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
             </p>
           </div>
           {!search && status !== "trashed" && (
-            <Button onClick={handleUploadClick} className="rounded-lg gap-1.5 text-xs">
+            <Button
+              onClick={handleUploadClick}
+              className="rounded-lg gap-1.5 text-xs"
+            >
               <Upload className="h-3.5 w-3.5" />
               Upload to Drive
             </Button>
@@ -253,7 +332,7 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
       ) : (
         <div className="space-y-1.5" ref={listRef}>
           {data?.items.map((file) => {
-            const encrypted = isFileEncrypted(file.iv, file.salt);
+            const encrypted = isFileEncrypted({ iv: file.iv, salt: file.salt });
             const isActiveDownload = isDownloading && file.id === activeFileId;
             return (
               <div
@@ -264,14 +343,21 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
                   isActiveDownload && "bg-primary/5",
                 )}
               >
-                <div className={cn("p-2 rounded-lg bg-primary/5 shrink-0", getFileIconColor(file.name))}>
+                <div
+                  className={cn(
+                    "p-2 rounded-lg bg-primary/5 shrink-0",
+                    getFileIconColor(file.name),
+                  )}
+                >
                   {getFileIcon(file.name)}
                 </div>
 
                 <div className="flex-1 min-w-0 flex items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold truncate">{file.name}</span>
+                      <span className="text-sm font-semibold truncate">
+                        {file.name}
+                      </span>
                       {isActiveDownload && (
                         <span className="text-xs font-bold text-primary tabular-nums shrink-0">
                           {progress}%
@@ -280,13 +366,25 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
                       <FileTypeBadge fileName={file.name} />
-                      <span className="text-xs text-muted-foreground/50 whitespace-nowrap">{formatBytes(file.size)}</span>
-                      <span className="text-xs text-muted-foreground/30">·</span>
-                      <span className="text-xs text-muted-foreground/50 whitespace-nowrap">{file.chunks}ch</span>
-                      <span className="text-xs text-muted-foreground/30">·</span>
+                      <span className="text-xs text-muted-foreground/50 whitespace-nowrap">
+                        {formatBytes(file.size)}
+                      </span>
+                      <span className="text-xs text-muted-foreground/30">
+                        ·
+                      </span>
+                      <span className="text-xs text-muted-foreground/50 whitespace-nowrap">
+                        {file.chunks}ch
+                      </span>
+                      <span className="text-xs text-muted-foreground/30">
+                        ·
+                      </span>
                       <span className="text-xs text-muted-foreground/50 flex items-center gap-1 whitespace-nowrap min-w-0">
                         <Calendar className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{file.createdAt ? formatRelativeDate(file.createdAt) : "N/A"}</span>
+                        <span className="truncate">
+                          {file.createdAt
+                            ? formatRelativeDate(file.createdAt)
+                            : "N/A"}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -311,8 +409,14 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
                   status={status}
                   isDownloading={isDownloading && file.id === activeFileId}
                   restoringId={restoringId}
-                  onPreview={(id, name) => { setActiveFileId(id); previewFile(id, name); }}
-                  onDownload={(id, name) => { setActiveFileId(id); downloadFile(id, name); }}
+                  onPreview={(id, name) => {
+                    setActiveFileId(id);
+                    previewFile(id, name);
+                  }}
+                  onDownload={(id, name) => {
+                    setActiveFileId(id);
+                    downloadFile(id, name);
+                  }}
                   onRename={(id, name) => setRenameTarget({ id, name })}
                   onDelete={(id, name) => setDeleteTarget({ id, name })}
                   onRestore={(id) => handleRestore(id)}
@@ -328,7 +432,8 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
               </p>
               <div className="flex gap-1">
                 <Button
-                  variant="ghost" size="sm"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
                   className="h-7 w-7 p-0 rounded-lg"
@@ -336,7 +441,8 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Button
-                  variant="ghost" size="sm"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={(page + 1) * PAGE_SIZE >= (data?.total || 0)}
                   className="h-7 w-7 p-0 rounded-lg"
@@ -358,7 +464,11 @@ export function StackList({ status = "active" }: { status?: "active" | "trashed"
         fileUrl={dc.previewUrl}
         isLoading={isDownloading && dc.mode === "preview"}
         progress={progress}
-        isEncrypted={activeFile ? isFileEncrypted(activeFile.iv, activeFile.salt) : false}
+        isEncrypted={
+          activeFile
+            ? isFileEncrypted({ iv: activeFile.iv, salt: activeFile.salt })
+            : false
+        }
         fileSize={activeFile?.size}
       />
 

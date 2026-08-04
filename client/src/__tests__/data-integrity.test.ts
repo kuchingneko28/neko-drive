@@ -2,20 +2,14 @@ import { describe, expect, test } from "bun:test";
 
 describe("Chunk assembly integrity", () => {
   test("blobs assembled in order produce correct output", async () => {
-    const parts = [
-      new Blob(["Hello "]),
-      new Blob(["World!"]),
-    ];
+    const parts = [new Blob(["Hello "]), new Blob(["World!"])];
     const combined = new Blob(parts);
     const text = await combined.text();
     expect(text).toBe("Hello World!");
   });
 
   test("blobs assembled out of order produce wrong output", async () => {
-    const parts = [
-      new Blob(["World!"]),
-      new Blob(["Hello "]),
-    ];
+    const parts = [new Blob(["World!"]), new Blob(["Hello "])];
     const combined = new Blob(parts);
     const text = await combined.text();
     // Out of order produces wrong result
@@ -24,11 +18,7 @@ describe("Chunk assembly integrity", () => {
   });
 
   test("empty blob in array is ignored", async () => {
-    const parts = [
-      new Blob(["A"]),
-      new Blob([]),
-      new Blob(["B"]),
-    ];
+    const parts = [new Blob(["A"]), new Blob([]), new Blob(["B"])];
     const combined = new Blob(parts);
     const text = await combined.text();
     expect(text).toBe("AB");
@@ -129,7 +119,8 @@ describe("Progress calculation edge cases", () => {
   test("0 chunks should not divide by zero", () => {
     const totalChunks = 0;
     const completed = 0;
-    const pct = totalChunks > 0 ? Math.round((completed / totalChunks) * 100) : 0;
+    const pct =
+      totalChunks > 0 ? Math.round((completed / totalChunks) * 100) : 0;
     expect(pct).toBe(0);
   });
 
