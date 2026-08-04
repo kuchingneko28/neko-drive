@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSystemHealth } from "@/hooks/useSystemHealth";
+import { type Theme } from "@/hooks/useTheme";
 import { api } from "@/lib/api";
 import { cn, formatBytes } from "@/lib/utils";
 import { Cpu, Loader2, Moon, Settings, Sun, Trash2, X } from "lucide-react";
@@ -11,8 +12,8 @@ import { toast } from "sonner";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 export function SettingsDialog({ open, onOpenChange, theme, setTheme }: Props) {
@@ -23,7 +24,7 @@ export function SettingsDialog({ open, onOpenChange, theme, setTheme }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="w-[95vw] max-w-lg p-0 rounded-xl overflow-hidden"
+        className="w-[95vw] max-w-lg p-0 rounded-xl overflow-hidden bg-card"
       >
         <div className="flex items-center justify-between p-4 border-b border-border/10">
           <div className="flex items-center gap-2.5">
@@ -31,7 +32,7 @@ export function SettingsDialog({ open, onOpenChange, theme, setTheme }: Props) {
               <Settings className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <DialogTitle className="text-sm font-semibold">Settings</DialogTitle>
+              <DialogTitle className="text-base font-semibold">Settings</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground/60">
                 Neko Drive preferences
               </DialogDescription>
@@ -62,7 +63,7 @@ export function SettingsDialog({ open, onOpenChange, theme, setTheme }: Props) {
               <div>
                 <p className="text-xs font-semibold text-muted-foreground/60 mb-2.5">Appearance</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {["light", "dark", "system"].map((mode) => (
+                  {(["light", "dark", "system"] as Theme[]).map((mode) => (
                     <Button
                       key={mode}
                       variant="outline" size="sm"

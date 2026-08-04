@@ -1,7 +1,15 @@
 {
   "compilerOptions": {
     "strict": true,
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["bun"],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
+    "jsxImportSource": "hono/jsx",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   }
 }

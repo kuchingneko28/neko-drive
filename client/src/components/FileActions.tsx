@@ -7,7 +7,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { FileMetadata } from "@/types";
-import { motion } from "framer-motion";
 import { Download, Eye, Globe, Loader2, MoreVertical, Pencil, Shield, Trash2, Undo2 } from "lucide-react";
 import { cn, formatBytes } from "@/lib/utils";
 import { getFileType, isFileEncrypted } from "@/lib/file-utils";
@@ -16,9 +15,6 @@ interface FileActionsProps {
   file: FileMetadata;
   status: "active" | "trashed";
   isDownloading: boolean;
-  progress: number;
-  mode: "download" | "preview" | null;
-  fileName: string | null;
   restoringId: string | null;
   onPreview: (id: string, name: string) => void;
   onDownload: (id: string, name: string) => void;
@@ -28,17 +24,14 @@ interface FileActionsProps {
 }
 
 export function FileActions({
-  file, status, isDownloading, progress, mode, fileName,
+  file, status, isDownloading,
   restoringId, onPreview, onDownload, onRename, onDelete, onRestore,
 }: FileActionsProps) {
-  if (isDownloading && fileName === file.name) {
+  if (isDownloading) {
     return (
-      <motion.div layout className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 min-w-12 justify-center">
-        <Loader2 className="h-3 w-3 animate-spin text-primary" />
-        {mode === "preview" && progress > 0 && (
-          <span className="text-xs font-bold text-primary tabular-nums">{progress}%</span>
-        )}
-      </motion.div>
+      <div className="flex items-center justify-center px-2 py-1 rounded-lg bg-primary/10 w-8 h-8">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+      </div>
     );
   }
 
@@ -52,6 +45,7 @@ export function FileActions({
         <Button
           variant="ghost" size="icon"
           className="h-8 w-8 rounded-lg text-muted-foreground/30 hover:text-foreground hover:bg-secondary/50 data-[state=open]:text-foreground data-[state=open]:bg-secondary/50 transition-all"
+          aria-label={`Actions for ${file.name}`}
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
@@ -67,7 +61,7 @@ export function FileActions({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold truncate leading-tight">{file.name}</p>
-              <p className="text-[11px] text-muted-foreground/60 mt-1">
+              <p className="text-xs text-muted-foreground/60 mt-1">
                 {formatBytes(file.size)}
                 <span className="mx-1">·</span>
                 {file.chunks} {file.chunks === 1 ? "chunk" : "chunks"}

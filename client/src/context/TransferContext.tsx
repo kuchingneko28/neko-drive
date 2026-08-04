@@ -70,8 +70,10 @@ export function TransferProvider({ children }: { children: ReactNode }) {
       document.title = "Neko Drive";
     }
   }, [
-    download.isDownloading, download.progress, download.fileName, download.mode,
-    upload.isUploading, upload.progress, upload.currentFileName,
+    // Transition-only: broadcasting on every progress tick made every open
+    // tab write document.title + handle messages at upload frequency.
+    download.isDownloading, download.fileName, download.mode,
+    upload.isUploading, upload.currentFileName,
   ]);
 
   useEffect(() => {
@@ -79,10 +81,10 @@ export function TransferProvider({ children }: { children: ReactNode }) {
 
     const showNotif = (title: string, body: string) => {
       if (Notification.permission === "granted") {
-        new Notification(title, { body, icon: "/favicon.ico" });
+        new Notification(title, { body, icon: "/vite.svg" });
       } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then((p) => {
-          if (p === "granted") new Notification(title, { body, icon: "/favicon.ico" });
+          if (p === "granted") new Notification(title, { body, icon: "/vite.svg" });
         });
       }
     };

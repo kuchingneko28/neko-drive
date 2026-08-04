@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTransfer } from "@/context/TransferContext";
 import { cn, formatBytes } from "@/lib/utils";
 import {
   AlertCircle, CheckCircle2, Globe, Loader2, Lock, Upload, X,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 interface UploadWidgetProps {
   open: boolean;
@@ -17,6 +18,9 @@ export function UploadWidget({ open, onOpenChange }: UploadWidgetProps) {
   const { upload, uploadFiles, cancelUpload, clearUpload } = useTransfer().upload;
   const [dragActive, setDragActive] = useState(false);
   const [encrypt, setEncrypt] = useState(true);
+  // Same depth counter as DropZone: prevents the border flashing as the
+  // cursor crosses into the dropzone's children.
+  const dragDepth = useRef(0);
 
   const handleClose = useCallback(() => {
     if (upload.status !== "uploading") clearUpload();
@@ -29,6 +33,7 @@ export function UploadWidget({ open, onOpenChange }: UploadWidgetProps) {
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    dragDepth.current = 0;
     setDragActive(false);
     if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   }, [handleFiles]);
@@ -40,7 +45,7 @@ export function UploadWidget({ open, onOpenChange }: UploadWidgetProps) {
         className="w-[95vw] max-w-sm bg-card border border-border/20 p-0 rounded-xl shadow-xl overflow-hidden flex flex-col"
       >
         <div className="flex items-center justify-between p-4 pb-3 border-b border-border/10">
-          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+          <DialogTitle className="text-base font-semibold flex items-center gap-2">
             <Upload className="h-4 w-4 text-primary" />
             Upload to Drive
           </DialogTitle>
@@ -77,8 +82,9 @@ export function UploadWidget({ open, onOpenChange }: UploadWidgetProps) {
             </RadioGroup>
 
             <div
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-              onDragLeave={() => setDragActive(false)}
+              onDragEnter={(e) => { e.preventDefault(); dragDepth.current += 1; setDragActive(true); }}
+              onDragOver={(e) => { e.preventDefault(); }}
+              onDragLeave={() => { dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setDragActive(false); }}
               onDrop={onDrop}
               className={cn(
                 "relative flex flex-col items-center gap-2 py-8 rounded-xl border-2 border-dashed transition-colors cursor-pointer",
@@ -116,9 +122,7 @@ export function UploadWidget({ open, onOpenChange }: UploadWidgetProps) {
 
             {upload.status === "uploading" && (
               <>
-                <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${upload.progress}%` }} />
-                </div>
+                <Progress className="h-1.5 rounded-full bg-secondary" value={upload.progress} />
                 <div className="flex justify-between text-xs text-muted-foreground/60">
                   <span>{formatBytes(upload.uploadedBytes)} / {formatBytes(upload.totalSize)}</span>
                   <span>{formatBytes(upload.speed)}/s</span>

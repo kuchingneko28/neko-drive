@@ -37,8 +37,8 @@ export function RenameFileDialog({ fileId, fileName, onClose }: Props) {
       toast.success("File renamed");
       queryClient.invalidateQueries({ queryKey: ["files"] });
       onClose();
-    } catch (e) {
-      toast.error(`Failed: ${(e as Error).message}`);
+    } catch (error) {
+      toast.error(`Failed: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -46,16 +46,16 @@ export function RenameFileDialog({ fileId, fileName, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="rounded-xl">
+      <DialogContent className="rounded-xl bg-card">
         <DialogHeader>
-          <DialogTitle className="text-sm font-semibold">Rename file</DialogTitle>
+          <DialogTitle className="text-base font-semibold">Rename file</DialogTitle>
         </DialogHeader>
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-3">
-          <div className="flex items-center gap-0.5 bg-secondary/30 rounded-lg border border-border/20 px-3 has-focus:ring-2 has-focus:ring-ring has-focus:border-ring">
+          <div className="flex items-center gap-0.5 bg-secondary/40 rounded-lg border border-transparent px-3 has-focus:ring-2 has-focus:ring-ring">
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 border-0 bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0"
+              className="flex-1 border-0 bg-transparent dark:bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0"
               autoFocus
             />
             {ext && <span className="text-sm text-muted-foreground/50 py-2 shrink-0 pointer-events-none">{ext}</span>}

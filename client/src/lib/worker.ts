@@ -50,3 +50,29 @@ export function decryptChunk(
     (p as { index: number }).index === index
   ).then((p) => p.chunk);
 }
+
+/**
+ * A small worker pool for parallel encryption.
+ * Uploads run CONCURRENCY chunks at once, but a single worker serializes
+ * every encrypt call — the extra workers keep encryption from being the
+ * bottleneck on fast connections.
+ */
+export function createWorkerPool(size: number): Worker[] {
+  return Array.from({ length: size }, () => createEncryptionWorker());
+}
+
+export async function initWorkerPool(pool: Worker[], password: string, salt: string): Promise<void> {
+  await Promise.all(pool.map((worker) => initWorker(worker, password, salt)));
+}
+
+let poolCursor = 0;
+
+export function encryptChunkPool(
+  pool: Worker[],
+  chunk: ArrayBuffer,
+  index: number,
+  iv: string,
+): Promise<ArrayBuffer> {
+  const worker = pool[poolCursor++ % pool.length];
+  return encryptChunk(worker, chunk, index, iv);
+}

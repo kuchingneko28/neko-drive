@@ -1,14 +1,20 @@
 import { Hono } from "hono";
 import db from "../db";
 import { logger } from "../lib/logger";
-import { refreshChunkUrl, isUrlExpired } from "../lib/refresh-url";
+import { resolveChunkUrlWithFallback } from "../lib/refresh-url";
 import { apiResponse } from "../lib/response";
 import type { ChunkMetadata, FileMetadata } from "../types";
 
-const download = new Hono();
+const download = new Hono<{ Variables: { mediaToken?: { fileId: string } } }>();
 
 download.get("/:id", async (ctx) => {
   const fileId = ctx.req.param("id");
+
+  // A media token only grants access to the file it was issued for
+  const mediaToken = ctx.get("mediaToken");
+  if (mediaToken && mediaToken.fileId !== fileId) {
+    return apiResponse.error(ctx, "Unauthorized", 401);
+  }
 
   try {
     const file = db.prepare("SELECT id, name, size, type FROM files WHERE id = ?").get(fileId) as
@@ -28,7 +34,7 @@ download.get("/:id", async (ctx) => {
       const chunk = chunks.find((ch) => ch.idx === idx);
       if (!chunk) return apiResponse.error(ctx, "Chunk not found", 404);
 
-      const cdnUrl = await refreshChunkUrl(chunk);
+      const cdnUrl = await resolveChunkUrlWithFallback(chunk);
       if (!cdnUrl) return apiResponse.error(ctx, "Failed to get chunk URL", 502);
 
       const response = await fetch(cdnUrl, { signal: AbortSignal.timeout(120000) });
@@ -58,14 +64,7 @@ download.get("/:id", async (ctx) => {
           while (attempt < MAX_ATTEMPTS) {
             attempt++;
 
-            let cdnUrl = chunk.url;
-            const expired = !cdnUrl || isUrlExpired(cdnUrl);
-
-            if (expired || attempt > 1) {
-              const refreshed = await refreshChunkUrl(chunk);
-              if (refreshed) cdnUrl = refreshed;
-            }
-
+            const cdnUrl = await resolveChunkUrlWithFallback(chunk);
             if (!cdnUrl) throw new Error("No URL available for chunk");
             if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
 
@@ -77,7 +76,7 @@ download.get("/:id", async (ctx) => {
                 throw new Error(`Fetch failed: ${response.status}`);
               }
 
-              return await response.arrayBuffer();
+              return response;
             } catch (err: unknown) {
               if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
               const msg = err instanceof Error ? err.message : String(err);
@@ -94,8 +93,8 @@ download.get("/:id", async (ctx) => {
         const startChunkIndex = parseInt(ctx.req.query("start_chunk") || "0", 10);
         const filteredChunks = chunks.filter((ch) => ch.idx >= startChunkIndex);
 
-        const WINDOW_SIZE = 2;
-        const promises: Array<Promise<ArrayBuffer> | null> = new Array(filteredChunks.length).fill(null);
+        const WINDOW_SIZE = 3;
+        const promises: Array<Promise<Response> | null> = new Array(filteredChunks.length).fill(null);
 
         for (let i = 0; i < Math.min(WINDOW_SIZE, filteredChunks.length); i++) {
           promises[i] = fetchChunkData(filteredChunks[i]);
@@ -104,8 +103,8 @@ download.get("/:id", async (ctx) => {
         for (let i = 0; i < filteredChunks.length; i++) {
           if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
 
-          const data = await promises[i];
-          if (!data) throw new Error(`Chunk ${filteredChunks[i].idx} data missing`);
+          const response = await promises[i];
+          if (!response) throw new Error(`Chunk ${filteredChunks[i].idx} data missing`);
 
           promises[i] = null;
           const next = i + WINDOW_SIZE;
@@ -113,8 +112,17 @@ download.get("/:id", async (ctx) => {
             promises[next] = fetchChunkData(filteredChunks[next]);
           }
 
-          if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
-          await writer.write(new Uint8Array(data));
+          // Stream the CDN body through directly — buffering the whole chunk
+          // (arrayBuffer) delays the first byte to the client until the CDN
+          // transfer finishes, which looks like a stuck download on slow links.
+          if (!response.body) throw new Error(`Chunk ${filteredChunks[i].idx} has no body`);
+          const reader = response.body.getReader();
+          while (true) {
+            if (ctx.req.raw.signal.aborted) throw new Error("Client aborted");
+            const { done, value } = await reader.read();
+            if (done) break;
+            await writer.write(value);
+          }
         }
 
         await writer.close();

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { processDownload } from "../lib/transfer-manager";
+import { processDownload } from "@/lib/transfer-manager";
 
 interface DownloadState {
   isDownloading: boolean;
@@ -116,13 +116,15 @@ export function useDownload(): UseDownloadReturn {
         fileName,
         mode,
         status: isResume ? "Resuming..." : "Starting...",
+        // A new file means any previously previewed URL is stale/revoked —
+        // drop it so the preview modal doesn't linger over a broken blob.
+        previewUrl: isResume ? prev.previewUrl : null,
         error: undefined,
       }));
 
       try {
         const url = await processDownload({
           fileId,
-          sequential: mode === "preview",
           signal: controller.signal,
           initialBlobs: downloadedChunksRef.current,
           onChunkDownloaded: (index, chunk) => {
@@ -147,25 +149,30 @@ export function useDownload(): UseDownloadReturn {
           a.href = url;
           a.download = fileName;
           a.click();
-          setTimeout(() => window.URL.revokeObjectURL(url), 500);
+          if (url.startsWith("blob:")) setTimeout(() => window.URL.revokeObjectURL(url), 500);
           toast.success("Download started");
           setState((prev) => ({ ...prev, isDownloading: false, progress: 100, status: "Complete" }));
         } else {
+          // Unencrypted previews are served from /stream; ask the server for an
+          // inline response so media renders instead of triggering a download.
+          const preview = url.startsWith("blob:")
+            ? url
+            : `${url}&inline=true`;
           setState((prev) => ({
             ...prev,
             isDownloading: false,
             progress: 100,
-            previewUrl: url,
+            previewUrl: preview,
             status: "Ready",
           }));
         }
-      } catch (e: unknown) {
+      } catch (raw: unknown) {
         if (controller.signal.aborted) {
           if (controller.signal.reason === "Paused") return;
           return;
         }
 
-        const error = e instanceof Error ? e : new Error(String(e));
+        const error = raw instanceof Error ? raw : new Error(String(raw));
         console.error("Download failed:", error);
         toast.error(`Transfer failed: ${error.message}`);
         setState((prev) => ({ ...prev, isDownloading: false, status: "Error" }));

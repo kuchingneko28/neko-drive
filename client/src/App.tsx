@@ -7,26 +7,14 @@ import { TransferWidget } from "@/components/TransferWidget";
 import { Toaster } from "@/components/ui/sonner";
 import { UploadWidget } from "@/components/UploadWidget";
 import { TransferProvider } from "@/context/TransferContext";
-import { useEffect, useState } from "react";
+import { useTheme } from "@/hooks/useTheme";
+import { useState } from "react";
 
 function App() {
   const [isUploadWidgetOpen, setIsUploadWidgetOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentView, setCurrentView] = useState<"active" | "trash">("active");
-  const [theme, setTheme] = useState(() => localStorage.getItem("neko-theme") || "system");
-
-  // Apply Theme Effect
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(theme);
-    }
-    localStorage.setItem("neko-theme", theme);
-  }, [theme]);
+  const { theme, setTheme } = useTheme();
 
   // Handle View Change
   const handleViewChange = (view: "active" | "trash") => {
@@ -49,7 +37,7 @@ function App() {
           </DropZone>
         </AppLayout>
 
-        <TransferWidget onOpenUpload={() => setIsUploadWidgetOpen(true)} />
+        <TransferWidget />
         <UploadWidget open={isUploadWidgetOpen} onOpenChange={setIsUploadWidgetOpen} />
         <SettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} theme={theme} setTheme={setTheme} />
         <Toaster theme={theme as "dark" | "light" | "system"} />

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, FileText, Loader2, Lock, X } from "lucide-react";
-import { useState } from "react";
+import { Download, Loader2, Lock, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getFileType } from "@/lib/file-utils";
 import { formatBytes } from "@/lib/utils";
 
@@ -20,12 +20,15 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
   const [err, setErr] = useState(false);
   const type = getFileType(fileName || "");
 
+  // Reset error state when a new file is opened
+  useEffect(() => setErr(false), [fileUrl]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-4xl h-[85dvh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent showCloseButton={false} className="sm:max-w-4xl h-[85dvh] flex flex-col p-0 gap-0 overflow-hidden bg-card">
         <DialogHeader className="p-4 border-b border-border/10 flex flex-row items-center justify-between shrink-0">
           <div className="flex-1 min-w-0">
-            <DialogTitle className="text-sm font-semibold truncate">{fileName || "Loading..."}</DialogTitle>
+            <DialogTitle className="text-base font-semibold truncate">{fileName || "Loading..."}</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground/60 mt-0.5">
               {isLoading ? (
                 <span className="flex items-center gap-1.5">
@@ -40,13 +43,16 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
           <div className="flex items-center gap-1 shrink-0">
             {fileUrl && !isLoading && (
               <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs font-medium px-2" asChild>
-                <a href={fileUrl} download={fileName || "download"}>
+                <a
+                  href={fileUrl.startsWith("blob:") ? fileUrl : fileUrl.replace("&inline=true", "")}
+                  download={fileName || "download"}
+                >
                   <Download className="h-3.5 w-3.5" />
                   Save
                 </a>
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label="Close preview">
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -84,16 +90,9 @@ export function FilePreviewModal({ isOpen, onClose, fileName, fileUrl, isLoading
                 <audio src={fileUrl} controls className="w-full max-w-sm"
                   onError={() => setErr(true)} />
               )}
-              {(type === "pdf" || type === "text") && (
+              {(type === "pdf" || type === "text" || type === "code") && (
                 <iframe src={fileUrl} className="w-full h-full rounded-lg border-0 bg-white" title="Preview"
                   onError={() => setErr(true)} />
-              )}
-              {type === "other" && (
-                <div className="text-center text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">Preview not available</p>
-                  <p className="text-xs mt-1">Download the file to view it locally.</p>
-                </div>
               )}
             </div>
           ) : null}

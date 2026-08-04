@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import type { SystemStats } from "../types";
+import type { SystemStats } from "@/types";
 
 export interface HealthStatus {
   database: "online" | "offline" | "error";

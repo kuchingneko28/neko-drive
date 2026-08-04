@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import db from "../db";
-import { MAX_FILE_SIZE } from "../config";
 import { backupDatabase } from "../lib/backup";
 import { bulkDeleteFromDiscord, uploadToDiscord } from "../lib/discord";
+import { purgePendingFiles } from "../lib/pending";
 import { logger } from "../lib/logger";
 import { apiResponse } from "../lib/response";
 
@@ -22,6 +22,8 @@ interface ChunkUploadResponse {
 const upload = new Hono();
 
 const HEX_REGEX = /^[0-9a-fA-F]+$/;
+// Client uploads 8MiB chunks; GCM adds a 16-byte tag. Allow a little slack.
+const MAX_CHUNK_SIZE = 10 * 1024 * 1024;
 
 function isValidHex(str: string, minLen = 1): boolean {
   return str.length >= minLen && HEX_REGEX.test(str);
@@ -38,8 +40,10 @@ upload.post("/file/init", async (ctx) => {
   if (!name || typeof name !== "string" || name.length > 512) {
     return apiResponse.error(ctx, "Invalid or missing file name", 400);
   }
-  if (typeof size !== "number" || size <= 0 || size > MAX_FILE_SIZE) {
-    return apiResponse.error(ctx, `Invalid file size (max ${MAX_FILE_SIZE} bytes)`, 400);
+  // ponytail: no size gate — chunking is the real limit; a stray giant
+  // selection may spawn a lot of Discord messages, that's a user choice.
+  if (typeof size !== "number" || size <= 0) {
+    return apiResponse.error(ctx, "Invalid file size", 400);
   }
 
   if (iv && typeof iv === "string" && iv.length > 0 && !isValidHex(iv, 24)) {
@@ -59,7 +63,17 @@ upload.post("/file/init", async (ctx) => {
         return apiResponse.error(ctx, "File ID already exists and is active", 409);
       }
       logger.debug(`Replacing pending file record: ${id}`);
+      // collect the old pending file's shards first — the FK cascade drops the
+      // chunk rows but leaves the Discord messages orphaned
+      const oldChunks = db.prepare("SELECT message_id FROM chunks WHERE file_id = ?").all(id) as {
+        message_id: string;
+      }[];
       db.run("DELETE FROM files WHERE id = ?", [id]);
+      if (oldChunks.length > 0) {
+        bulkDeleteFromDiscord(oldChunks.map((chunk) => chunk.message_id)).catch((error: unknown) =>
+          logger.error("Failed to clean up replaced file's shards:", error),
+        );
+      }
     }
 
     logger.debug(`Initializing file record: ${name} (${id})`);
@@ -109,6 +123,9 @@ upload.post("/file/:id/chunk", async (ctx) => {
 
   if (!buffer || buffer.byteLength === 0) {
     return apiResponse.error(ctx, "Empty chunk", 400);
+  }
+  if (buffer.byteLength > MAX_CHUNK_SIZE) {
+    return apiResponse.error(ctx, `Chunk too large (max ${MAX_CHUNK_SIZE} bytes)`, 413);
   }
 
   const fileExists = db.prepare("SELECT 1 FROM files WHERE id = ? AND status = 'pending'").get(fileId);
@@ -163,7 +180,7 @@ upload.get("/file/:id/chunks", async (ctx) => {
       idx: number;
     }[];
     return apiResponse.success(ctx,
-      chunks.map((ch) => ch.idx),
+      chunks.map((chunk) => chunk.idx),
     );
   } catch (error: unknown) {
     logger.error("Chunk Discovery Error:", error);
@@ -181,9 +198,8 @@ upload.post("/file/:id/finalize", async (ctx) => {
     const skipBackup = ctx.req.query("skip_backup") === "true";
 
     if (!skipBackup) {
-      backupDatabase().catch((error: unknown) => {
-        logger.error("Background task failed:", error);
-      });
+      backupDatabase();
+
     }
 
     return apiResponse.success(ctx);
@@ -220,33 +236,8 @@ upload.post("/file/:id/abort", async (ctx) => {
 });
 
 upload.delete("/file/pending/all", async (ctx) => {
-  try {
-    logger.info("Bulk purging all pending uploads");
-    const chunks = db
-      .prepare(
-        `SELECT message_id FROM chunks
-       WHERE file_id IN (SELECT id FROM files WHERE status = 'pending')`,
-      )
-      .all() as { message_id: string }[];
-
-    const messageIds = chunks.map((chunk) => chunk.message_id);
-
-    db.run("DELETE FROM chunks WHERE file_id IN (SELECT id FROM files WHERE status = 'pending')");
-    db.run("DELETE FROM files WHERE status = 'pending'");
-
-    logger.debug(`Purged all pending metadata, cleaning up ${messageIds.length} shards`);
-
-    if (messageIds.length > 0) {
-      bulkDeleteFromDiscord(messageIds).catch((error: unknown) => {
-        logger.error("Background bulk-purge cleanup failed:", error);
-      });
-    }
-
-    return apiResponse.success(ctx, { purgedCount: messageIds.length });
-  } catch (error: unknown) {
-    logger.error("Bulk Purge Error:", error);
-    return apiResponse.error(ctx, "Failed to purge pending uploads", 500);
-  }
+  const purgedCount = purgePendingFiles();
+  return apiResponse.success(ctx, { purgedCount });
 });
 
 export default upload;

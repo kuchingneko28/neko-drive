@@ -3,15 +3,34 @@ import { logger } from "./logger";
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const BACKUP_CHANNEL_ID = process.env.DISCORD_BACKUP_CHANNEL_ID || process.env.DISCORD_CHANNEL_ID;
 
+// ponytail: coalesce backups — mutations fire-and-forget this, so don't let
+// rapid ones upload the whole DB concurrently (Discord rate limits, orphans).
+let running = false;
+let queued = false;
+
 /**
  * Uploads the SQLite database to Discord as a backup
  */
-export async function backupDatabase() {
+export function backupDatabase() {
   if (!BOT_TOKEN || !BACKUP_CHANNEL_ID) {
     logger.warn("Skipping backup: Missing configuration");
     return;
   }
+  if (running) {
+    queued = true;
+    return;
+  }
+  running = true;
+  run().finally(() => {
+    running = false;
+    if (queued) {
+      queued = false;
+      backupDatabase();
+    }
+  });
+}
 
+async function run() {
   try {
     const buffer = await Bun.file("neko.db").arrayBuffer();
     const timestamp = Math.floor(Date.now() / 1000);

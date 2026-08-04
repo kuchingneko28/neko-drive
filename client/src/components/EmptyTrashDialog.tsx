@@ -41,9 +41,9 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-xl">
+      <AlertDialogContent className="rounded-xl bg-card">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-base font-bold">Empty trash?</AlertDialogTitle>
+          <AlertDialogTitle className="text-base font-semibold">Empty trash?</AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground">
             This will permanently delete all trashed files. This cannot be undone.
           </AlertDialogDescription>

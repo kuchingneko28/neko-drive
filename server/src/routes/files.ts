@@ -12,7 +12,7 @@ const MAX_PAGE_LIMIT = 100;
 
 files.get("/", async (ctx) => {
   try {
-    const limit = Math.min(parseInt(ctx.req.query("limit") || "50") || 50, MAX_PAGE_LIMIT);
+    const limit = Math.min(Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1), MAX_PAGE_LIMIT);
     const offset = Math.max(parseInt(ctx.req.query("offset") || "0") || 0, 0);
     const status = ctx.req.query("status") || "active";
     const sort = ctx.req.query("sort") || "created_at";
@@ -26,8 +26,9 @@ files.get("/", async (ctx) => {
     const allFiles = db
       .prepare(
         `SELECT f.id, f.name, f.size, f.type, f.iv, f.salt, f.status, (f.created_at * 1000) as createdAt,
-         (SELECT COUNT(*) FROM chunks WHERE file_id = f.id) as chunks
+         COALESCE(c.cnt, 0) as chunks
          FROM files f
+         LEFT JOIN (SELECT file_id, COUNT(*) as cnt FROM chunks GROUP BY file_id) c ON c.file_id = f.id
          WHERE f.status = ?
          ORDER BY f.${sortCol} ${order}
          LIMIT ? OFFSET ?`,
@@ -51,6 +52,8 @@ files.get("/", async (ctx) => {
 files.get("/search", async (ctx) => {
   const query = ctx.req.query("q");
   const status = ctx.req.query("status") || "active";
+  const limit = Math.min(Math.max(parseInt(ctx.req.query("limit") || "50") || 50, 1), MAX_PAGE_LIMIT);
+  const offset = Math.max(parseInt(ctx.req.query("offset") || "0") || 0, 0);
 
   if (!query) {
     return ctx.redirect(`/api/files?status=${status}`);
@@ -62,19 +65,33 @@ files.get("/search", async (ctx) => {
 
   try {
     logger.debug(`Searching files for: "${query}" (status: ${status})`);
+    // FTS5 MATCH treats `- + ( ) * ^ " ~ < >` as syntax — wrap the escaped
+    // query in a quoted phrase so special chars can't break the expression
     const sanitized = query.replace(/"/g, '""');
+    const match = `"${sanitized}"*`;
     const results = db
       .prepare(
         `SELECT f.id, f.name, f.size, f.type, f.iv, f.salt, f.status, (f.created_at * 1000) as createdAt,
-       (SELECT COUNT(*) FROM chunks WHERE file_id = f.id) as chunks
+       COALESCE(c.cnt, 0) as chunks
        FROM files f
        JOIN files_fts fts ON f.id = fts.id
+       LEFT JOIN (SELECT file_id, COUNT(*) as cnt FROM chunks GROUP BY file_id) c ON c.file_id = f.id
        WHERE files_fts MATCH ? AND f.status = ?
-       ORDER BY rank`,
+       ORDER BY rank
+       LIMIT ? OFFSET ?`,
       )
-      .all(`${sanitized}*`, status) as FileMetadata[];
+      .all(match, status, limit, offset) as FileMetadata[];
+    const total = (
+      db
+        .prepare(
+          `SELECT COUNT(*) as count FROM files f
+           JOIN files_fts fts ON f.id = fts.id
+           WHERE files_fts MATCH ? AND f.status = ?`,
+        )
+        .get(match, status) as { count: number }
+    ).count;
 
-    return apiResponse.success<FileMetadata[]>(ctx, results);
+    return apiResponse.success<PaginatedResponse<FileMetadata>>(ctx, { items: results, total, limit, offset });
   } catch (error: unknown) {
     logger.error(`Search error for "${query}":`, error);
     return apiResponse.error(ctx, "Search failed", 500);
@@ -120,9 +137,8 @@ files.post("/:id/restore", async (ctx) => {
     db.run("UPDATE files SET status = 'active' WHERE id = ?", [id]);
     logger.info(`Restored file ${id} from trash`);
 
-    backupDatabase().catch((err: unknown) => {
-      logger.error("Background backup failed after restoration:", err);
-    });
+    backupDatabase();
+
 
     return apiResponse.success(ctx, { message: "File restored" });
   } catch (error: unknown) {
@@ -159,9 +175,8 @@ files.delete("/trash", async (ctx) => {
       logger.error("Background Discord cleanup failed for empty trash:", err);
     });
 
-    backupDatabase().catch((err: unknown) => {
-      logger.error("Background backup failed after empty trash:", err);
-    });
+    backupDatabase();
+
 
     return apiResponse.success(ctx, { message: "Trash emptied", deletedCount: ids.length });
   } catch (error: unknown) {
@@ -203,9 +218,8 @@ files.delete("/:id", async (ctx) => {
       db.run("UPDATE files SET status = 'trashed' WHERE id = ?", [id]);
       logger.info(`Soft deleted (trashed) file ${id}`);
 
-      backupDatabase().catch((err: unknown) => {
-        logger.error("Background backup failed after trashing:", err);
-      });
+      backupDatabase();
+
 
       return apiResponse.success(ctx, { message: "File moved to trash" });
     }
@@ -223,9 +237,8 @@ files.delete("/:id", async (ctx) => {
       logger.error(`Background Discord cleanup failed for ${id}:`, err);
     });
 
-    backupDatabase().catch((err: unknown) => {
-      logger.error("Background backup failed after deletion:", err);
-    });
+    backupDatabase();
+
 
     return apiResponse.success(ctx, { message: "File permanently deleted" });
   } catch (error: unknown) {

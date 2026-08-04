@@ -1,27 +1,34 @@
 import { useTransfer } from "@/context/TransferContext";
 import { Upload } from "lucide-react";
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 
 export function DropZone({ children }: { children: ReactNode }) {
   const [dragging, setDragging] = useState(false);
   const { uploadFiles } = useTransfer().upload;
+  // Depth counter: dragleave fires when crossing into child elements, which
+  // otherwise makes the overlay flicker as it mounts/unmounts under the cursor.
+  const dragDepth = useRef(0);
+
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragging(true);
+  }, []);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragging(true);
   }, []);
 
   const onDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDragging(false);
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
   }, []);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
+      dragDepth.current = 0;
       setDragging(false);
       if (e.dataTransfer.files?.length) {
         uploadFiles(Array.from(e.dataTransfer.files));
@@ -31,7 +38,7 @@ export function DropZone({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+    <div onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
       {children}
       {dragging && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-sm">

@@ -43,6 +43,25 @@ export function getFileIcon(fileName: string) {
   }
 }
 
+export function getFileIconColor(fileName: string): string {
+  switch (getFileType(fileName)) {
+    case "image":
+      return "text-green-500";
+    case "video":
+      return "text-purple-500";
+    case "audio":
+      return "text-amber-500";
+    case "archive":
+      return "text-yellow-600";
+    case "code":
+    case "text":
+    case "pdf":
+      return "text-blue-500";
+    default:
+      return "text-muted-foreground";
+  }
+}
+
 export function isFileEncrypted(iv?: string | null, salt?: string | null) {
   if (!iv || !salt) return false;
   const isHex = (str: string) => /^[0-9a-fA-F]{24,64}$/.test(str);

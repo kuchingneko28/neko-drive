@@ -63,7 +63,7 @@ describe("File size calculation", () => {
       { size: 8388608 },
       { size: 1048576 }, // 1MB (last chunk)
     ];
-    const total = chunks.reduce((acc, ch) => acc + ch.size, 0);
+    const total = chunks.reduce((acc, chunk) => acc + chunk.size, 0);
     expect(total).toBe(17825792); // ~17MB
   });
 
@@ -119,7 +119,7 @@ describe("Concurrent access scenarios", () => {
       expect(results.length).toBe(5);
       // results may be [item2, item0, item4, item1, item3] or similar
       // but NOT [item0, item1, item2, item3, item4]
-      const isOrdered = results.every((val, i) => val === `item${i}`);
+      const isOrdered = results.every((value, i) => value === `item${i}`);
       expect(isOrdered).toBe(false);
     });
   });

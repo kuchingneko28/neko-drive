@@ -3,6 +3,7 @@ import db from "../db";
 import { backupDatabase } from "../lib/backup";
 import { logger } from "../lib/logger";
 import { apiResponse } from "../lib/response";
+import { VERSION } from "../config";
 import { SystemStats } from "../types";
 
 const system = new Hono();
@@ -22,7 +23,7 @@ system.get("/health", async (ctx) => {
     memory: process.memoryUsage(),
     database: "offline",
     discord: "checking", // Will be overwritten
-    version: "2.0",
+    version: VERSION,
     debug: process.env.DEBUG === "true",
   };
 
@@ -110,9 +111,8 @@ system.post("/backup", async (ctx) => {
   try {
     logger.info("Manual backup triggered via API");
     // Run in background to avoid blocking the user
-    backupDatabase().catch((err: unknown) => {
-      logger.error("Background manual backup failed:", err);
-    });
+    backupDatabase();
+
 
     return apiResponse.success(ctx, { message: "Backup initiative started." });
   } catch (error: unknown) {

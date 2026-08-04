@@ -35,8 +35,8 @@ export function DeleteFileDialog({ fileId, fileName, status, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["files"] });
       queryClient.invalidateQueries({ queryKey: ["system-stats"] });
       onClose();
-    } catch (e) {
-      toast.error(`Failed: ${(e as Error).message}`);
+    } catch (error) {
+      toast.error(`Failed: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -44,9 +44,9 @@ export function DeleteFileDialog({ fileId, fileName, status, onClose }: Props) {
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && !loading && onClose()}>
-      <AlertDialogContent className="rounded-xl">
+      <AlertDialogContent className="rounded-xl bg-card">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-base font-bold">
+          <AlertDialogTitle className="text-base font-semibold">
             {status === "active" ? "Move to trash?" : "Delete forever?"}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground">

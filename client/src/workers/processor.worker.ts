@@ -3,6 +3,8 @@
  * Handles heavy lifting: encryption/decryption using AES-256-GCM.
  */
 
+import { hexToBytes, chunkIv } from "@/lib/iv";
+
 let cryptoKey: CryptoKey | null = null;
 
 async function deriveKey(password: string, salt: Uint8Array) {
@@ -31,7 +33,7 @@ self.onmessage = async (e: MessageEvent) => {
   try {
     if (type === "INIT") {
       const { password, salt } = payload;
-      const saltBuffer = new Uint8Array(salt.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
+      const saltBuffer = hexToBytes(salt);
       cryptoKey = await deriveKey(password, saltBuffer);
       self.postMessage({ type: "INIT_READY" });
     }
@@ -40,7 +42,7 @@ self.onmessage = async (e: MessageEvent) => {
       if (!cryptoKey) throw new Error("Worker not initialized");
       const { chunk, index, iv } = payload;
 
-      const ivBuffer = new Uint8Array(iv.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
+      const ivBuffer = chunkIv(iv, index);
 
       const decrypted = await self.crypto.subtle.decrypt({ name: "AES-GCM", iv: ivBuffer }, cryptoKey, chunk);
 
@@ -57,7 +59,7 @@ self.onmessage = async (e: MessageEvent) => {
       if (!cryptoKey) throw new Error("Worker not initialized");
       const { chunk, index, iv } = payload;
 
-      const ivBuffer = new Uint8Array(iv.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16)));
+      const ivBuffer = chunkIv(iv, index);
 
       const encrypted = await self.crypto.subtle.encrypt({ name: "AES-GCM", iv: ivBuffer }, cryptoKey, chunk);
 

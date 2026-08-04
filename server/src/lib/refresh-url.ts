@@ -6,45 +6,11 @@ import type { ChunkMetadata } from "../types";
 const BACKUP_CHANNEL_ID = process.env.DISCORD_BACKUP_CHANNEL_ID;
 const PRIMARY_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 
-export function isUrlExpired(url: string): boolean {
-  const exMatch = url.match(/[?&]ex=([0-9a-fA-F]+)/);
-  if (!exMatch) return false;
-  const expiry = parseInt(exMatch[1], 16);
-  return expiry < Date.now() / 1000;
-}
-
-export function isUrlExpiringSoon(url: string): boolean {
+function isUrlExpiringSoon(url: string): boolean {
   const exMatch = url.match(/[?&]ex=([0-9a-fA-F]+)/);
   if (!exMatch) return true;
   const expiry = parseInt(exMatch[1], 16);
   return expiry < Math.floor(Date.now() / 1000) + 300;
-}
-
-export async function refreshChunkUrl(chunk: ChunkMetadata): Promise<string | null> {
-  let cdnUrl = chunk.url;
-
-  if (cdnUrl && !isUrlExpired(cdnUrl)) return cdnUrl;
-
-  try {
-    if (cdnUrl) {
-      const refreshed = await refreshDiscordUrls([cdnUrl]);
-      if (refreshed[0]) {
-        cdnUrl = refreshed[0];
-      } else if (chunk.message_id) {
-        cdnUrl = await getDiscordCDNUrl(chunk.message_id);
-      }
-    } else if (chunk.message_id) {
-      cdnUrl = await getDiscordCDNUrl(chunk.message_id);
-    }
-
-    if (cdnUrl) {
-      db.run("UPDATE chunks SET url = ? WHERE message_id = ?", [cdnUrl, chunk.message_id]);
-    }
-    return cdnUrl || null;
-  } catch (e) {
-    logger.error(`Failed to refresh URL for chunk ${chunk.idx}:`, e instanceof Error ? e.message : e);
-    return null;
-  }
 }
 
 export async function resolveChunkUrlWithFallback(chunk: ChunkMetadata): Promise<string | null> {
@@ -79,10 +45,10 @@ export async function resolveChunkUrlWithFallback(chunk: ChunkMetadata): Promise
           return newUrl;
         }
       }
-    } catch (e) {
+    } catch (error) {
       logger.warn(
         `Failed to refresh URL for chunk ${chunk.idx} on channel ${chId}:`,
-        e instanceof Error ? e.message : e,
+        error instanceof Error ? error.message : error,
       );
     }
   }

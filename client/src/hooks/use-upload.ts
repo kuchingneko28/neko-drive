@@ -37,7 +37,7 @@ export function useUpload() {
 
   const uploadFiles = useCallback(
     async (files: File[], shouldEncrypt: boolean = true) => {
-      const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+      const totalSize = files.reduce((acc, file) => acc + file.size, 0);
       setUpload((prev) => ({
         ...prev,
         status: "uploading",
@@ -93,7 +93,7 @@ export function useUpload() {
         }
 
         setUpload((prev) => ({ ...prev, status: "success", progress: 100 }));
-        toast.success(`${files.length} stacks successfully archived!`);
+        toast.success(`${files.length} ${files.length === 1 ? "file" : "files"} uploaded successfully!`);
         queryClient.invalidateQueries({ queryKey: ["files"] });
         queryClient.invalidateQueries({ queryKey: ["system-stats"] });
 
@@ -110,14 +110,14 @@ export function useUpload() {
           }));
           abortControllerRef.current = null;
         }, 3000);
-      } catch (e: unknown) {
-        if (abortControllerRef.current?.signal.aborted || (e as Error).message === "Aborted") {
+      } catch (error: unknown) {
+        if (abortControllerRef.current?.signal.aborted || (error as Error).message === "Aborted") {
           toast.info("Upload cancelled");
           setUpload((prev) => ({ ...prev, status: "idle", progress: 0 }));
           return;
         }
 
-        const msg = (e as Error).message;
+        const msg = (error as Error).message;
         toast.error(`Failed to archive: ${msg}`);
         setUpload((prev) => ({ ...prev, status: "error" }));
       }
@@ -162,7 +162,7 @@ export function useUpload() {
         toast.success("Abandoned uploads cleared!");
         queryClient.invalidateQueries({ queryKey: ["system-stats"] });
       }
-    } catch (e: unknown) {
+    } catch (error: unknown) {
       toast.error("Failed to clear abandoned uploads");
     }
   }, [queryClient]);

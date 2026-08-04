@@ -44,7 +44,10 @@ export async function uploadToDiscord(
     throw new Error(`Discord Upload Failed: ${response.status} ${errorBody}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as {
+    id: string;
+    attachments?: { url: string; filename: string; size: number }[];
+  };
   const attachment = data.attachments?.[0];
   if (!attachment) throw new Error("Discord returned no attachments");
 
@@ -75,8 +78,8 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
       });
       logger.debug(`Successfully deleted single chunk: ${messageIds[0]}`);
       return;
-    } catch (err) {
-      logger.error(`Failed to delete single message ${messageIds[0]}:`, err);
+    } catch (error) {
+      logger.error(`Failed to delete single message ${messageIds[0]}:`, error);
       return;
     }
   }
@@ -117,8 +120,8 @@ export async function bulkDeleteFromDiscord(messageIds: string[]) {
                   method: "DELETE",
                   headers: { Authorization: `Bot ${BOT_TOKEN}` },
                 });
-              } catch (err) {
-                logger.error(`Failed to delete individual message ${id}:`, err);
+              } catch (error) {
+                logger.error(`Failed to delete individual message ${id}:`, error);
               }
             }),
           );
@@ -153,7 +156,7 @@ export async function refreshDiscordUrls(urls: string[]): Promise<string[]> {
     throw new Error(`Discord URL Refresh Failed: ${response.status} ${errorBody}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { refreshed_urls: { refreshed: string }[] };
   return data.refreshed_urls.map((item: { refreshed: string }) => item.refreshed);
 }
 
@@ -172,7 +175,7 @@ export async function getDiscordCDNUrl(messageId: string, channelId?: string): P
     throw new Error(`Failed to fetch message ${messageId}: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { attachments?: { url?: string }[] };
   const url = data.attachments?.[0]?.url;
   if (!url) throw new Error(`Message ${messageId} has no attachments`);
   return url;
